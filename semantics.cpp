@@ -27,6 +27,9 @@ TreeNode* currentFunction = NULL;
 DeclType functionReturnType;
 SymbolTable symbolTable;
 
+int gOffset = 0;
+int lOffset = 0;
+
 bool compare(const err& f, const err& s) {
     return f.lineno < s.lineno;
 }
@@ -46,6 +49,7 @@ void IOLibrary(TreeNode *&t) {
     std::string IOID[] = {"input", "output", "inputb", "outputb", "inputc", "outputc", "outnl"};
     DeclType IORET[] = {Int, Void, Bool, Void, Char, Void, Void};
     DeclType IOPARAM[] = {Void, Int, Void, Bool, Void, Char, Void};
+    int IOSize[] = {-2, -3, -2, -3, -2, -3, -2};
     TreeNode* nodes[7];
 
     // Build 7 nodes with respect to each index of the IOID, IORET, and IOPARAM arrays
@@ -56,6 +60,8 @@ void IOLibrary(TreeNode *&t) {
         newNode->lineno = -1;
         newNode->attr.name = strdup(IOID[i].c_str());
         newNode->declType = IORET[i]; // Add return type
+        newNode->memSize = IOSize[i];
+        newNode->memOffset = 0;
 
         // Add param node to child[0] if necessary
         // Use the Void attribute of declType as if it were NULL, and set params
@@ -65,6 +71,8 @@ void IOLibrary(TreeNode *&t) {
             paramNode->lineno = -1;
             paramNode->attr.name = strdup("*dummy*");
             paramNode->declType = IOPARAM[i];
+            paramNode->memSize = 1;
+            paramNode->memOffset = -2;
             newNode->child[0] = paramNode;
         } else {
             newNode->child[0] = NULL;
@@ -115,6 +123,10 @@ void scopeAndType(TreeNode *t, int& nerrors, int& nwarnings) {
 }
 
 void processDecl(TreeNode* t, int& nerrors, int& nwarnings) {
+    if(symbolTable.depth() == 1) {
+        t->isGlobal = true;
+    } else t->isGlobal = false;
+    
     //Find re-declarations. Varkind is special as per its initialization. 
     TreeNode* initializer; 
     if(t->kind.decl != VarK && !symbolTable.insert(t->attr.name,t)) {
@@ -132,6 +144,9 @@ void processDecl(TreeNode* t, int& nerrors, int& nwarnings) {
                 //t->isArray = initializer->isArray;
             }
             initializer = NULL; // just being safe
+            t->memSize = 1;
+            t->memOffset = lOffset;
+            lOffset--; 
             break;
         case VarK:
             for(int i = 0; i < 3; i++) { scopeAndType(t->child[i], nerrors, nwarnings); }
@@ -170,8 +185,29 @@ void processDecl(TreeNode* t, int& nerrors, int& nwarnings) {
                 TreeNode* exists = (TreeNode*)symbolTable.lookup(t->attr.name);
                 printError(0, t->lineno, exists->lineno, t->attr.name, NULL, NULL, 0);
             }
+            
+            // Memory size
+            if(t->isArray) {
+                t->memSize = t->arrayLen + 1;
+            } else {
+                t->memSize = 1;
+            }
+            // Memory offset
+            if(t->isGlobal || t->isStatic) {
+                if(t->isArray) {
+                    t->memOffset = gOffset - 1;
+                } else t->memOffset = gOffset; 
+                gOffset -= t->memSize;
+            } else {
+                if(t->isArray) {
+                    t->memOffset = lOffset - 1;
+                } else t->memOffset = lOffset;
+                lOffset -= t->memSize; 
+            }
             break;
         case FuncK:
+            lOffset = 0;
+            lOffset -= 2;
             currentFunction = t;
             // Establish a scope that applies to both the function params and the contents of the compound. 
             symbolTable.enter(t->attr.name);
@@ -194,13 +230,23 @@ void processDecl(TreeNode* t, int& nerrors, int& nwarnings) {
             }
             symbolTable.leave();
             currentFunction = NULL;
+
+            t->memSize = 0;
+            TreeNode* p = t->child[0];
+            while(p != NULL) {
+                t->memSize--;
+                p = p->sibling;
+            }
+            t->memSize -= 2;
+            t->memOffset = 0;
             break;
     }
 }
 
 void processStmt(TreeNode* t, int& nerrors, int& nwarnings) {
-    bool c0err, c1err, c2err;
+    bool c0err, c1err, c2err, c0isArr, c1isArr, c2isArr;
     c0err = c1err = c2err = false;
+    c0isArr = c1isArr = c2isArr = false;
     // Track whether we're in a loop so we can throw break errors
     // This is done here because we're about to scopeAndType the children, but need the marker beforehand.
     if(t->kind.stmt == WhileK || t->kind.stmt == ForK) { 
@@ -210,6 +256,11 @@ void processStmt(TreeNode* t, int& nerrors, int& nwarnings) {
     if(t->kind.stmt != CompK) {
         for(int i = 0; i < 3; i++) { 
             scopeAndType(t->child[i], nerrors, nwarnings);
+            if(t->child[i] != NULL && t->child[i]->isArray == true) {
+                if(i == 0) c0isArr = true;
+                if(i == 1) c1isArr = true;
+                if(i == 2) c2isArr = true;
+            }
             // Do not throw errors if an ID was not declared. 
             if(t->child[i] != NULL && t->child[i]->declType == Void) {
                 // Ignore Voids that apply to function calls
@@ -224,22 +275,25 @@ void processStmt(TreeNode* t, int& nerrors, int& nwarnings) {
     TreeNode* c0 = t->child[0];
     TreeNode* c1 = t->child[1];
     TreeNode* c2 = t->child[2];
+    if(c0 != NULL && c0->child[0] != NULL) c0isArr = false;
+    if(c1 != NULL && c1->child[0] != NULL) c1isArr = false;
+    if(c2 != NULL && c1->child[0] != NULL) c2isArr = false;
 
     switch(t->kind.stmt) {
         case IfK:
             if(c0->declType != Bool && !c0err) printError(10, t->lineno, 0, t->attr.name, getTypeStr(c0->declType), NULL, 0);
-            if(c0->isArray) printError(9, t->lineno, 0, t->attr.name, NULL, NULL, 0);
+            if(c0isArr) printError(9, t->lineno, 0, t->attr.name, NULL, NULL, 0);
             break;
         case WhileK:
             if(c0->declType != Bool && !c0err) printError(10, t->lineno, 0, t->attr.name, getTypeStr(c0->declType), NULL, 0);
-            if(c0->isArray) printError(9, t->lineno, 0, t->attr.name, NULL, NULL, 0);
+            if(c0isArr) printError(9, t->lineno, 0, t->attr.name, NULL, NULL, 0);
             if(loopDepth == symbolTable.depth()) inLoop = false; // Tracking breaks via recursion
             break;
         case ForK:
             // Requires LH of 'in' to be nonarray type
-            if(c0->isArray && !c0err) printError(30, t->lineno, 0, NULL, NULL, NULL, 0);
+            if(c0isArr && !c0err) printError(30, t->lineno, 0, NULL, NULL, NULL, 0);
             // If RH of 'in' isn't an array, it must be an int
-            if(!c1->isArray) {
+            if(!c1isArr) {
                 if(c1->declType != Int && !c1err) printError(29, t->lineno, 0, getTypeStr(c1->declType), NULL, NULL, 0);
                 // Requires LH of 'in' to be int
                 if(c0->declType != Int && !c0err) printError(28, t->lineno, 0, getTypeStr(c0->declType), NULL, NULL, 0);
@@ -250,10 +304,12 @@ void processStmt(TreeNode* t, int& nerrors, int& nwarnings) {
             if(loopDepth == symbolTable.depth()) inLoop = false; // Tracking breaks via recursion
             break;
         case ReturnK:
+            scopeAndType(t->child[0], nerrors, nwarnings);
             if(t->child[0] != NULL) {
-                if(t->child[0]->isArray) printError(11, t->lineno, 0, NULL, NULL, NULL, 0);
                 if(currentFunction == NULL) break; // Because segfaults
                 if(currentFunction->declType != Void && t->child[0]->declType != Void && currentFunction->declType != t->child[0]->declType) printError(13, t->lineno, currentFunction->lineno, currentFunction->attr.name, getTypeStr(currentFunction->declType), getTypeStr(t->child[0]->declType), 0);
+            } else {
+                if(t->isArray) printError(11, t->lineno, 0, NULL, NULL, NULL, 0);
             }
             foundReturn = true; // Throws error 15 in FuncK
             // Expecing no return type but got x
@@ -265,6 +321,7 @@ void processStmt(TreeNode* t, int& nerrors, int& nwarnings) {
             if(!inLoop) { printError(16, t->lineno, 0, NULL, NULL, NULL, 0); }
             break;
         case CompK:
+            int compSize = lOffset;    
             // Enter a new scope. If this compound is the beginning of a funciton defenition, 
             // ignore this compound statement entirely as it's scope has already been handled. 
             bool retainScope = enterScope;
@@ -275,9 +332,13 @@ void processStmt(TreeNode* t, int& nerrors, int& nwarnings) {
                 // "retainScope" to avoid calling ".leave()" twice. 
                 enterScope = true;
             }
+
             for(int i = 0; i < 3; i++) scopeAndType(t->child[i], nerrors, nwarnings);
             // Check if we were a lone compound, and leave the scope if we were. 
             if(retainScope) symbolTable.leave();
+            //printf("MSize: %i CSize: %i lOffset: %i\n", t->memSize, compSize, lOffset);
+            t->memSize = lOffset;
+            lOffset = compSize;
             break;
     }
 }

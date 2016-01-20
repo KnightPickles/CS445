@@ -1,7 +1,7 @@
 BIN  = c-
 CC   = g++
-SRCS = $(BIN).y $(BIN).l token.h globals.h util.h util.cpp semantics.h semantics.cpp symbolTable.h symbolTable.cpp
-OBJS = lex.yy.o $(BIN).tab.o util.o semantics.o symbolTable.o 
+SRCS = $(BIN).y $(BIN).l token.h globals.h util.h util.cpp semantics.h semantics.cpp codegen.h codegen.cpp symbolTable.h symbolTable.cpp
+OBJS = lex.yy.o $(BIN).tab.o util.o semantics.o codegen.o symbolTable.o 
 LIBS = -lm 
 
 $(BIN): $(OBJS)
@@ -18,6 +18,9 @@ util.o: util.cpp util.h globals.h
 
 semantics.o: semantics.h semantics.cpp globals.h symbolTable.o
 	$(CC) $(CFLAGS) -c semantics.cpp
+
+codegen.o: codegen.h codegen.cpp globals.h symbolTable.o
+	$(CC) $(CFLAGS) -c codegen.cpp
 
 symbolTable.o: symbolTable.h symbolTable.cpp
 	$(CC) $(CFLAGS) -c symbolTable.cpp

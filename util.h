@@ -3,7 +3,7 @@
 
 #include "globals.h"
 
-void printTree(TreeNode *tree, int, bool);
+void printTree(TreeNode *tree, int, bool, bool);
 void printSpaces();
 TreeNode *newStmtNode(StmtKind);
 TreeNode *newExprNode(ExprKind);

@@ -53,6 +53,9 @@ typedef struct treeNode {
     bool isStatic;                         // is staticly allocated?
     bool isArray;                          // is this an array
     int arrayLen;
-    // even more semantic stuff will go here in later assignments.
+    // only applies to decl nodes
+    bool isGlobal;      // Is this variable declared in local or global space?
+    int memSize;        // How much memory does it take up? i.e. array size
+    int memOffset;         // How far is it offest from address 9999 moving towards 0?
 } TreeNode;
 #endif

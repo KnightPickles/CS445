@@ -5,8 +5,10 @@
 #include "util.h"
 #include "token.h"
 #include "semantics.h"
+#include "codegen.h"
 #define YYERROR_VERBOSE
 
+extern int gOffset;
 extern int numwarnings;
 extern int numerrors;
 extern int yylineno;
@@ -819,7 +821,8 @@ int main(int argc, char** argv) {
     int opt;
     bool print = false;
     bool printAn = false;
-    while((opt = getopt(argc, argv, "dpP")) != EOF) {
+    bool printAnScoped = false;
+    while((opt = getopt(argc, argv, "dpPS")) != EOF) {
         switch(opt) { //in case we add more options
             default:
                 abort();
@@ -832,13 +835,15 @@ int main(int argc, char** argv) {
                 break;
             case 'P':
                 printAn = true;
+            case 'S':
+                printAnScoped = true;
         }
     }
    
     // If there's a trailing argument, it must be the filename. 
     if(argc > 1) {
         FILE *iFile;
-        iFile = fopen(argv[argc - 1], "r");
+        iFile = fopen(argv[1], "r");// ALTERED TO HAVE HARD CODE
         if(!iFile) {
             printf("File not found: %s\n", argv[argc - 1]);
             exit(-1);
@@ -852,7 +857,7 @@ int main(int argc, char** argv) {
     } while(!feof(yyin)); 
 
     if(print && numerrors == 0) {
-        printTree(syntaxTree, -1, false);
+        printTree(syntaxTree, -1, false, false);
     }
 
     if(numerrors == 0 && numwarnings == 0) {
@@ -861,11 +866,16 @@ int main(int argc, char** argv) {
     }
 
     if(numerrors == 0 && numwarnings == 0 && printAn) {
-        printTree(syntaxTree, -1, true); // print annotated syntax tree
+        printTree(syntaxTree, -1, true, printAnScoped); // print annotated syntax tree
     }
 
+    if(printAnScoped) printf("Offset for end of global space: %i\n", gOffset);
     printf("Number of warnings: %i\n", numwarnings);
     printf("Number of errors: %i\n", numerrors);
     
+    if(numerrors == 0 && numwarnings == 0) {
+//        generateCode(syntaxTree, argv[argc - 1]);
+    }
+
     return 0;
 }

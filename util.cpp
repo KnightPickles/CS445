@@ -8,7 +8,7 @@ static int chiCount = 0;
 static int siblingIndex = 0;
 
 // As per the tiny compiler. Probably the most ugly way to do a print statement.
-void printTree(TreeNode *tree, int sibCount, bool annotated) {
+void printTree(TreeNode *tree, int sibCount, bool annotated, bool scoped) {
     bool flag = false;
     if(sibCount == -1) {
         sibCount++;
@@ -38,6 +38,9 @@ void printTree(TreeNode *tree, int sibCount, bool annotated) {
                     break;
                 case CompK: 
                     printf("Compound ");
+                    if(scoped) {
+                        printf("with size %i at end of it's declarations ", t->memSize);
+                    }
                     break;
                 case ReturnK:
                     printf("Return ");
@@ -122,6 +125,20 @@ void printTree(TreeNode *tree, int sibCount, bool annotated) {
                 default:
                     break;
             }
+            if(scoped) {
+                switch(t->kind.decl) {
+                    case FuncK:
+                        printf("allocated as Global%s of size %i and exec location %i ", t->isStatic ? "Static" : "", t->memSize, t->memOffset);
+                        break;
+                    case VarK:
+                        printf("allocated as %s%s of size %i and data location %i ", t->isGlobal ? "Global" : "Local", t->isStatic ? "Static" : "", t->memSize, t->memOffset);
+                        break;
+                    case ParamK:
+                        printf("allocated as Parameter of size %i and data location %i ", t->memSize, t->memOffset);
+                        break;
+                    default: break;
+                }
+            }
         } else {
             printf("Unknown node kind.\n");
         }
@@ -133,7 +150,7 @@ void printTree(TreeNode *tree, int sibCount, bool annotated) {
         printf("[line: %d]\n", t->lineno);
         for(int i = 0; i < MAXCHILDREN; i++) {
             chiCount = i;
-            printTree(t->child[i], 0, annotated);
+            printTree(t->child[i], 0, annotated, scoped);
             chiCount = 0;
         }
     }
