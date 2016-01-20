@@ -1,5 +1,6 @@
 // C-F15
 int s:s, t:'%', u:"dogs";  // these are semantic errors
+int d: 6 + 7;
 
 main(){
     int i:666;

@@ -1,7 +1,7 @@
 BIN  = c-
 CC   = g++
-SRCS = $(BIN).y $(BIN).l tokenClass.h globals.h util.h util.c
-OBJS = lex.yy.o $(BIN).tab.o util.o
+SRCS = $(BIN).y $(BIN).l token.h globals.h util.h util.cpp semantics.h semantics.cpp symbolTable.h symbolTable.cpp
+OBJS = lex.yy.o $(BIN).tab.o util.o semantics.o symbolTable.o 
 LIBS = -lm 
 
 $(BIN): $(OBJS)
@@ -10,19 +10,24 @@ $(BIN): $(OBJS)
 $(BIN).tab.h $(BIN).tab.c: $(BIN).y
 	bison -v -t -d $(BIN).y   # -d supplies defines file
 
-lex.yy.c: $(BIN).l $(BIN).tab.h
+lex.yy.c: $(BIN).l $(BIN).tab.h 
 	flex $(BIN).l  # -d debug
 
-util.o: util.c util.h globals.h
-	$(CC) $(CFLAGS) -c util.c
+util.o: util.cpp util.h globals.h
+	$(CC) $(CFLAGS) -c util.cpp
 
+semantics.o: semantics.h semantics.cpp globals.h symbolTable.o
+	$(CC) $(CFLAGS) -c semantics.cpp
+
+symbolTable.o: symbolTable.h symbolTable.cpp
+	$(CC) $(CFLAGS) -c symbolTable.cpp
 
 all:    
 	touch $(SRCS)
 	make
 
 clean:
-	rm -f $(OBJS) $(BIN) lex.yy.c $(BIN).tab.h $(BIN).tab.c $(BIN).tar *~
+	rm -f $(OBJS) $(BIN) $(BIN).output lex.yy.c $(BIN).tab.h $(BIN).tab.c $(BIN).tar *~
 
 pdf:	
 	c-.y c-.l makefile

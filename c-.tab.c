@@ -71,50 +71,27 @@
      STRINGCONST = 260,
      CHARCONST = 261,
      BOOLCONST = 262,
-     OP = 263,
-     ERROR = 264,
-     BOOL = 265,
-     BREAK = 266,
-     CHAR = 267,
-     ELSE = 268,
-     FOREACH = 269,
-     IF = 270,
-     IN = 271,
-     INT = 272,
-     RETURN = 273,
-     STATIC = 274,
-     WHILE = 275,
-     ASSIGN = 276,
-     NOTEQ = 277,
-     EQ = 278,
-     LESSEQ = 279,
-     LESS = 280,
-     GRTEQ = 281,
-     GRT = 282,
-     INC = 283,
-     DEC = 284,
-     ADDASS = 285,
-     ADD = 286,
-     SUBASS = 287,
-     SUB = 288,
-     MULASS = 289,
-     MUL = 290,
-     DIVASS = 291,
-     DIV = 292,
-     OPAREN = 293,
-     CPAREN = 294,
-     OBRACE = 295,
-     CBRACE = 296,
-     OBRAK = 297,
-     CBRAK = 298,
-     COMMA = 299,
-     COLON = 300,
-     SEMI = 301,
-     MOD = 302,
-     QUE = 303,
-     AND = 304,
-     OR = 305,
-     NOT = 306
+     BOOL = 263,
+     BREAK = 264,
+     CHAR = 265,
+     ELSE = 266,
+     FOREACH = 267,
+     IF = 268,
+     IN = 269,
+     INT = 270,
+     RETURN = 271,
+     STATIC = 272,
+     WHILE = 273,
+     NOTEQ = 274,
+     EQ = 275,
+     LESSEQ = 276,
+     GRTEQ = 277,
+     INC = 278,
+     DEC = 279,
+     ADDASS = 280,
+     SUBASS = 281,
+     MULASS = 282,
+     DIVASS = 283
    };
 #endif
 /* Tokens.  */
@@ -123,50 +100,27 @@
 #define STRINGCONST 260
 #define CHARCONST 261
 #define BOOLCONST 262
-#define OP 263
-#define ERROR 264
-#define BOOL 265
-#define BREAK 266
-#define CHAR 267
-#define ELSE 268
-#define FOREACH 269
-#define IF 270
-#define IN 271
-#define INT 272
-#define RETURN 273
-#define STATIC 274
-#define WHILE 275
-#define ASSIGN 276
-#define NOTEQ 277
-#define EQ 278
-#define LESSEQ 279
-#define LESS 280
-#define GRTEQ 281
-#define GRT 282
-#define INC 283
-#define DEC 284
-#define ADDASS 285
-#define ADD 286
-#define SUBASS 287
-#define SUB 288
-#define MULASS 289
-#define MUL 290
-#define DIVASS 291
-#define DIV 292
-#define OPAREN 293
-#define CPAREN 294
-#define OBRACE 295
-#define CBRACE 296
-#define OBRAK 297
-#define CBRAK 298
-#define COMMA 299
-#define COLON 300
-#define SEMI 301
-#define MOD 302
-#define QUE 303
-#define AND 304
-#define OR 305
-#define NOT 306
+#define BOOL 263
+#define BREAK 264
+#define CHAR 265
+#define ELSE 266
+#define FOREACH 267
+#define IF 268
+#define IN 269
+#define INT 270
+#define RETURN 271
+#define STATIC 272
+#define WHILE 273
+#define NOTEQ 274
+#define EQ 275
+#define LESSEQ 276
+#define GRTEQ 277
+#define INC 278
+#define DEC 279
+#define ADDASS 280
+#define SUBASS 281
+#define MULASS 282
+#define DIVASS 283
 
 
 
@@ -176,20 +130,16 @@
 
 // c-.y CS445 Zachary Yama
 
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
 #include <getopt.h>
 #include "util.h"
-#include "tokenClass.h"
+#include "token.h"
+#include "semantics.h"
 #define YYERROR_VERBOSE
 
 extern int yylineno;
 extern int yylex();
 extern FILE *yyin;
 
-static char *assignName;
-static int lineno;
 static TreeNode *syntaxTree;
 
 void yyerror(const char *msg) {
@@ -230,15 +180,15 @@ void charerror(const char *rtxt) {
 
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 typedef union YYSTYPE
-#line 38 "c-.y"
+#line 34 "c-.y"
 {
     Token token; 
     TreeNode *treeNode;
-    DeclType integer;
-    char *string;
+    DeclType declType;
+    char *cstring;
 }
 /* Line 193 of yacc.c.  */
-#line 242 "c-.tab.c"
+#line 192 "c-.tab.c"
 	YYSTYPE;
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1
@@ -251,7 +201,7 @@ typedef union YYSTYPE
 
 
 /* Line 216 of yacc.c.  */
-#line 255 "c-.tab.c"
+#line 205 "c-.tab.c"
 
 #ifdef short
 # undef short
@@ -466,10 +416,10 @@ union yyalloc
 /* YYFINAL -- State number of the termination state.  */
 #define YYFINAL  12
 /* YYLAST -- Last index in YYTABLE.  */
-#define YYLAST   215
+#define YYLAST   205
 
 /* YYNTOKENS -- Number of terminals.  */
-#define YYNTOKENS  52
+#define YYNTOKENS  50
 /* YYNNTS -- Number of nonterminals.  */
 #define YYNNTS  49
 /* YYNRULES -- Number of rules.  */
@@ -479,7 +429,7 @@ union yyalloc
 
 /* YYTRANSLATE(YYLEX) -- Bison symbol number corresponding to YYLEX.  */
 #define YYUNDEFTOK  2
-#define YYMAXUTOK   306
+#define YYMAXUTOK   283
 
 #define YYTRANSLATE(YYX)						\
   ((unsigned int) (YYX) <= YYMAXUTOK ? yytranslate[YYX] : YYUNDEFTOK)
@@ -490,16 +440,16 @@ static const yytype_uint8 yytranslate[] =
        0,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,    49,     2,     2,     2,    45,    47,     2,
+      36,    37,    34,    32,    42,    33,     2,    35,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,    43,    44,
+      30,    28,    31,    46,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,    40,     2,    41,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,    38,    48,    39,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
@@ -515,9 +465,7 @@ static const yytype_uint8 yytranslate[] =
        2,     2,     2,     2,     2,     2,     1,     2,     3,     4,
        5,     6,     7,     8,     9,    10,    11,    12,    13,    14,
       15,    16,    17,    18,    19,    20,    21,    22,    23,    24,
-      25,    26,    27,    28,    29,    30,    31,    32,    33,    34,
-      35,    36,    37,    38,    39,    40,    41,    42,    43,    44,
-      45,    46,    47,    48,    49,    50,    51
+      25,    26,    27,    29
 };
 
 #if YYDEBUG
@@ -541,55 +489,55 @@ static const yytype_uint16 yyprhs[] =
 /* YYRHS -- A `-1'-separated list of the rules' RHS.  */
 static const yytype_int8 yyrhs[] =
 {
-      53,     0,    -1,    54,    -1,    54,    55,    -1,    55,    -1,
-      56,    -1,    63,    -1,    62,    58,    46,    -1,    61,    58,
-      46,    -1,    58,    44,    59,    -1,    59,    -1,    60,    -1,
-      60,    45,    83,    -1,     3,    -1,     3,    42,     4,    43,
-      -1,    19,    62,    -1,    62,    -1,    17,    -1,    10,    -1,
-      12,    -1,    62,     3,    38,    64,    39,    69,    -1,     3,
-      38,    64,    39,    69,    -1,    65,    -1,    -1,    65,    46,
-      66,    -1,    66,    -1,    62,    67,    -1,    67,    44,    68,
-      -1,    68,    -1,     3,    -1,     3,    42,    43,    -1,    71,
-      -1,    70,    -1,    76,    -1,    78,    -1,    75,    -1,    72,
-      -1,    80,    -1,    81,    -1,    77,    -1,    79,    -1,    40,
-      73,    74,    41,    -1,    73,    57,    -1,    -1,    74,    69,
-      -1,    -1,    82,    46,    -1,    46,    -1,    15,    38,    83,
-      39,    70,    13,    70,    -1,    15,    38,    83,    39,    70,
-      13,    71,    -1,    15,    38,    83,    39,    69,    -1,    20,
-      38,    83,    39,    70,    -1,    14,    38,    95,    16,    83,
-      39,    70,    -1,    20,    38,    83,    39,    71,    -1,    14,
-      38,    95,    16,    83,    39,    71,    -1,    18,    46,    -1,
-      18,    82,    46,    -1,    11,    46,    -1,    95,    21,    82,
-      -1,    95,    30,    82,    -1,    95,    32,    82,    -1,    95,
-      34,    82,    -1,    95,    36,    82,    -1,    95,    28,    -1,
-      95,    29,    -1,    83,    -1,    83,    50,    84,    -1,    84,
-      -1,    84,    49,    85,    -1,    85,    -1,    51,    85,    -1,
-      86,    -1,    88,    87,    88,    -1,    88,    -1,    24,    -1,
-      25,    -1,    27,    -1,    26,    -1,    23,    -1,    22,    -1,
-      88,    89,    90,    -1,    90,    -1,    31,    -1,    33,    -1,
-      90,    91,    92,    -1,    92,    -1,    35,    -1,    37,    -1,
-      47,    -1,    93,    92,    -1,    94,    -1,    33,    -1,    35,
-      -1,    48,    -1,    96,    -1,    95,    -1,     3,    -1,     3,
-      42,    82,    43,    -1,    38,    82,    39,    -1,    97,    -1,
-     100,    -1,     3,    38,    98,    39,    -1,    99,    -1,    -1,
-      99,    44,    82,    -1,    82,    -1,     4,    -1,     6,    -1,
+      51,     0,    -1,    52,    -1,    52,    53,    -1,    53,    -1,
+      54,    -1,    61,    -1,    60,    56,    44,    -1,    59,    56,
+      44,    -1,    56,    42,    57,    -1,    57,    -1,    58,    -1,
+      58,    43,    81,    -1,     3,    -1,     3,    40,     4,    41,
+      -1,    17,    60,    -1,    60,    -1,    15,    -1,     8,    -1,
+      10,    -1,    60,     3,    36,    62,    37,    67,    -1,     3,
+      36,    62,    37,    67,    -1,    63,    -1,    -1,    63,    44,
+      64,    -1,    64,    -1,    60,    65,    -1,    65,    42,    66,
+      -1,    66,    -1,     3,    -1,     3,    40,    41,    -1,    69,
+      -1,    68,    -1,    74,    -1,    76,    -1,    73,    -1,    70,
+      -1,    78,    -1,    79,    -1,    75,    -1,    77,    -1,    38,
+      71,    72,    39,    -1,    71,    55,    -1,    -1,    72,    67,
+      -1,    -1,    80,    44,    -1,    44,    -1,    13,    36,    81,
+      37,    68,    11,    68,    -1,    13,    36,    81,    37,    68,
+      11,    69,    -1,    13,    36,    81,    37,    67,    -1,    18,
+      36,    81,    37,    68,    -1,    12,    36,    93,    14,    81,
+      37,    68,    -1,    18,    36,    81,    37,    69,    -1,    12,
+      36,    93,    14,    81,    37,    69,    -1,    16,    44,    -1,
+      16,    80,    44,    -1,     9,    44,    -1,    93,    28,    80,
+      -1,    93,    25,    80,    -1,    93,    26,    80,    -1,    93,
+      27,    80,    -1,    93,    29,    80,    -1,    93,    23,    -1,
+      93,    24,    -1,    81,    -1,    81,    48,    82,    -1,    82,
+      -1,    82,    47,    83,    -1,    83,    -1,    49,    83,    -1,
+      84,    -1,    86,    85,    86,    -1,    86,    -1,    21,    -1,
+      30,    -1,    31,    -1,    22,    -1,    20,    -1,    19,    -1,
+      86,    87,    88,    -1,    88,    -1,    32,    -1,    33,    -1,
+      88,    89,    90,    -1,    90,    -1,    34,    -1,    35,    -1,
+      45,    -1,    91,    90,    -1,    92,    -1,    33,    -1,    34,
+      -1,    46,    -1,    94,    -1,    93,    -1,     3,    -1,     3,
+      40,    80,    41,    -1,    36,    80,    37,    -1,    95,    -1,
+      98,    -1,     3,    36,    96,    37,    -1,    97,    -1,    -1,
+      97,    42,    80,    -1,    80,    -1,     4,    -1,     6,    -1,
        5,    -1,     7,    -1
 };
 
 /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
 static const yytype_uint16 yyrline[] =
 {
-       0,   117,   117,   122,   132,   135,   136,   141,   156,   171,
-     181,   184,   185,   191,   195,   203,   208,   214,   215,   216,
-     220,   229,   239,   240,   243,   253,   256,   270,   280,   283,
-     287,   296,   297,   300,   301,   302,   303,   304,   305,   308,
-     309,   312,   320,   330,   333,   343,   346,   347,   350,   360,
-     368,   377,   384,   394,   401,   411,   415,   422,   430,   436,
-     442,   448,   454,   460,   465,   470,   473,   479,   482,   488,
-     491,   496,   499,   505,   508,   509,   510,   511,   512,   513,
-     516,   522,   525,   526,   529,   535,   538,   539,   540,   543,
-     548,   551,   552,   553,   556,   557,   560,   564,   571,   572,
-     573,   576,   583,   584,   587,   597,   600,   605,   610,   615
+       0,   111,   111,   116,   126,   129,   130,   135,   150,   165,
+     175,   178,   179,   185,   190,   199,   204,   210,   211,   212,
+     216,   225,   235,   236,   239,   249,   252,   266,   276,   279,
+     283,   292,   293,   296,   297,   298,   299,   300,   301,   304,
+     305,   308,   316,   326,   329,   339,   342,   343,   346,   356,
+     364,   373,   380,   390,   397,   407,   412,   420,   428,   435,
+     442,   449,   456,   463,   469,   475,   478,   484,   487,   493,
+     496,   501,   504,   510,   513,   514,   515,   516,   517,   518,
+     521,   527,   530,   531,   534,   541,   544,   545,   546,   549,
+     554,   557,   558,   559,   562,   563,   566,   570,   577,   578,
+     579,   582,   589,   590,   593,   603,   606,   611,   616,   622
 };
 #endif
 
@@ -599,18 +547,17 @@ static const yytype_uint16 yyrline[] =
 static const char *const yytname[] =
 {
   "$end", "error", "$undefined", "ID", "NUMCONST", "STRINGCONST",
-  "CHARCONST", "BOOLCONST", "OP", "ERROR", "BOOL", "BREAK", "CHAR", "ELSE",
-  "FOREACH", "IF", "IN", "INT", "RETURN", "STATIC", "WHILE", "ASSIGN",
-  "NOTEQ", "EQ", "LESSEQ", "LESS", "GRTEQ", "GRT", "INC", "DEC", "ADDASS",
-  "ADD", "SUBASS", "SUB", "MULASS", "MUL", "DIVASS", "DIV", "OPAREN",
-  "CPAREN", "OBRACE", "CBRACE", "OBRAK", "CBRAK", "COMMA", "COLON", "SEMI",
-  "MOD", "QUE", "AND", "OR", "NOT", "$accept", "program",
-  "declaration_list", "declaration", "var_declaration",
-  "scoped_var_declaration", "var_decl_list", "var_decl_initialize",
-  "var_decl_id", "scoped_type_specifier", "type_specifier",
-  "fun_declaration", "params", "param_list", "param_type_list",
-  "param_id_list", "param_id", "statement", "matched", "unmatched",
-  "compound_stmt", "local_declarations", "statement_list",
+  "CHARCONST", "BOOLCONST", "BOOL", "BREAK", "CHAR", "ELSE", "FOREACH",
+  "IF", "IN", "INT", "RETURN", "STATIC", "WHILE", "NOTEQ", "EQ", "LESSEQ",
+  "GRTEQ", "INC", "DEC", "ADDASS", "SUBASS", "MULASS", "'='", "DIVASS",
+  "'<'", "'>'", "'+'", "'-'", "'*'", "'/'", "'('", "')'", "'{'", "'}'",
+  "'['", "']'", "','", "':'", "';'", "'%'", "'?'", "'&'", "'|'", "'!'",
+  "$accept", "program", "declaration_list", "declaration",
+  "var_declaration", "scoped_var_declaration", "var_decl_list",
+  "var_decl_initialize", "var_decl_id", "scoped_type_specifier",
+  "type_specifier", "fun_declaration", "params", "param_list",
+  "param_type_list", "param_id_list", "param_id", "statement", "matched",
+  "unmatched", "compound_stmt", "local_declarations", "statement_list",
   "expression_stmt", "matched_selection", "unmatched_selection",
   "matched_iteration", "unmatched_iteration", "return_stmt", "break_stmt",
   "expression", "simple_expression", "and_expression",
@@ -627,27 +574,26 @@ static const yytype_uint16 yytoknum[] =
 {
        0,   256,   257,   258,   259,   260,   261,   262,   263,   264,
      265,   266,   267,   268,   269,   270,   271,   272,   273,   274,
-     275,   276,   277,   278,   279,   280,   281,   282,   283,   284,
-     285,   286,   287,   288,   289,   290,   291,   292,   293,   294,
-     295,   296,   297,   298,   299,   300,   301,   302,   303,   304,
-     305,   306
+     275,   276,   277,   278,   279,   280,   281,   282,    61,   283,
+      60,    62,    43,    45,    42,    47,    40,    41,   123,   125,
+      91,    93,    44,    58,    59,    37,    63,    38,   124,    33
 };
 # endif
 
 /* YYR1[YYN] -- Symbol number of symbol that rule YYN derives.  */
 static const yytype_uint8 yyr1[] =
 {
-       0,    52,    53,    54,    54,    55,    55,    56,    57,    58,
-      58,    59,    59,    60,    60,    61,    61,    62,    62,    62,
-      63,    63,    64,    64,    65,    65,    66,    67,    67,    68,
-      68,    69,    69,    70,    70,    70,    70,    70,    70,    71,
-      71,    72,    73,    73,    74,    74,    75,    75,    76,    77,
-      77,    78,    78,    79,    79,    80,    80,    81,    82,    82,
-      82,    82,    82,    82,    82,    82,    83,    83,    84,    84,
-      85,    85,    86,    86,    87,    87,    87,    87,    87,    87,
-      88,    88,    89,    89,    90,    90,    91,    91,    91,    92,
-      92,    93,    93,    93,    94,    94,    95,    95,    96,    96,
-      96,    97,    98,    98,    99,    99,   100,   100,   100,   100
+       0,    50,    51,    52,    52,    53,    53,    54,    55,    56,
+      56,    57,    57,    58,    58,    59,    59,    60,    60,    60,
+      61,    61,    62,    62,    63,    63,    64,    65,    65,    66,
+      66,    67,    67,    68,    68,    68,    68,    68,    68,    69,
+      69,    70,    71,    71,    72,    72,    73,    73,    74,    75,
+      75,    76,    76,    77,    77,    78,    78,    79,    80,    80,
+      80,    80,    80,    80,    80,    80,    81,    81,    82,    82,
+      83,    83,    84,    84,    85,    85,    85,    85,    85,    85,
+      86,    86,    87,    87,    88,    88,    89,    89,    89,    90,
+      90,    91,    91,    91,    92,    92,    93,    93,    94,    94,
+      94,    95,    96,    96,    97,    97,    98,    98,    98,    98
 };
 
 /* YYR2[YYN] -- Number of symbols composing right hand side of rule YYN.  */
@@ -680,12 +626,12 @@ static const yytype_uint8 yydefact[] =
        0,     0,     0,     0,     0,     0,    43,    47,    21,    32,
       31,    36,    35,    33,    39,    34,    40,    37,    38,     0,
       65,    95,    24,     0,    14,   103,     0,     0,    70,     0,
-       0,    79,    78,    74,    75,    77,    76,    82,    83,     0,
+       0,    79,    78,    74,    77,    75,    76,    82,    83,     0,
        0,    86,    87,    88,     0,    89,    30,    27,    57,     0,
-       0,    55,     0,     0,    45,    46,     0,    63,    64,     0,
+       0,    55,     0,     0,    45,    46,    63,    64,     0,     0,
        0,     0,     0,    20,   105,     0,   102,     0,    98,    66,
       68,    72,    80,    84,    96,     0,     0,    56,     0,     0,
-      42,     0,    16,     0,    58,    59,    60,    61,    62,   101,
+      42,     0,    16,     0,    59,    60,    61,    58,    62,   101,
        0,    97,     0,     0,     0,    15,     0,    41,    44,   104,
        0,    50,    32,    51,    53,     8,     0,     0,    52,    54,
       48,    49
@@ -703,37 +649,37 @@ static const yytype_int16 yydefgoto[] =
 
 /* YYPACT[STATE-NUM] -- Index in YYTABLE of the portion describing
    STATE-NUM.  */
-#define YYPACT_NINF -114
+#define YYPACT_NINF -142
 static const yytype_int16 yypact[] =
 {
-      23,    -9,  -114,  -114,  -114,    13,    23,  -114,  -114,    11,
-    -114,    81,  -114,  -114,   -21,    50,  -114,    -2,    48,    21,
-      26,  -114,    81,    72,    84,  -114,   153,    53,    56,  -114,
-      98,    81,    68,    67,    77,  -114,    29,  -114,  -114,  -114,
-    -114,  -114,  -114,   153,  -114,   153,    76,    83,  -114,  -114,
-     154,    31,  -114,   167,  -114,  -114,  -114,  -114,  -114,    82,
-      48,    88,    91,    92,   117,    97,  -114,  -114,  -114,  -114,
-    -114,  -114,  -114,  -114,  -114,  -114,  -114,  -114,  -114,    94,
-      76,     2,  -114,    98,  -114,   153,   153,   102,  -114,   153,
-     153,  -114,  -114,  -114,  -114,  -114,  -114,  -114,  -114,   167,
-     167,  -114,  -114,  -114,   167,  -114,  -114,  -114,  -114,   134,
-     153,  -114,    96,   153,    80,  -114,   153,  -114,  -114,   153,
-     153,   153,   153,  -114,  -114,   104,   101,   105,  -114,    83,
-    -114,    75,    31,  -114,   109,   131,   -23,  -114,    19,    81,
-    -114,    84,  -114,     4,  -114,  -114,  -114,  -114,  -114,  -114,
-     153,  -114,   153,    98,    98,  -114,    71,  -114,  -114,  -114,
-      20,  -114,   140,  -114,  -114,  -114,    98,    98,  -114,  -114,
-    -114,  -114
+      68,   -29,  -142,  -142,  -142,    19,    68,  -142,  -142,    34,
+    -142,   130,  -142,  -142,    59,   -20,  -142,    18,    64,    31,
+      37,  -142,   130,    66,    79,  -142,   148,    47,    54,  -142,
+      97,   130,    60,    57,    65,  -142,    71,  -142,  -142,  -142,
+    -142,  -142,  -142,   148,  -142,   148,    75,    61,  -142,  -142,
+     145,    11,  -142,    26,  -142,  -142,  -142,  -142,  -142,    83,
+      64,    72,    76,    89,   114,    90,  -142,  -142,  -142,  -142,
+    -142,  -142,  -142,  -142,  -142,  -142,  -142,  -142,  -142,    85,
+      75,   176,  -142,    97,  -142,   148,   148,    95,  -142,   148,
+     148,  -142,  -142,  -142,  -142,  -142,  -142,  -142,  -142,    26,
+      26,  -142,  -142,  -142,    26,  -142,  -142,  -142,  -142,   131,
+     148,  -142,    92,   148,   175,  -142,  -142,  -142,   148,   148,
+     148,   148,   148,  -142,  -142,   100,   102,   101,  -142,    61,
+    -142,    20,    11,  -142,   109,   142,   -21,  -142,    29,   130,
+    -142,    79,  -142,     5,  -142,  -142,  -142,  -142,  -142,  -142,
+     148,  -142,   148,    97,    97,  -142,    -2,  -142,  -142,  -142,
+      32,  -142,   146,  -142,  -142,  -142,    97,    97,  -142,  -142,
+    -142,  -142
 };
 
 /* YYPGOTO[NTERM-NUM].  */
 static const yytype_int16 yypgoto[] =
 {
-    -114,  -114,  -114,   148,  -114,  -114,    25,   137,  -114,  -114,
-       0,  -114,   142,  -114,   136,  -114,   115,   -80,  -105,  -113,
-    -114,  -114,  -114,  -114,  -114,  -114,  -114,  -114,  -114,  -114,
-     -39,   -24,    73,   -33,  -114,  -114,    70,  -114,    89,  -114,
-     -48,  -114,  -114,   -25,  -114,  -114,  -114,  -114,  -114
+    -142,  -142,  -142,   153,  -142,  -142,    21,   137,  -142,  -142,
+       0,  -142,   147,  -142,   139,  -142,   108,   -80,  -119,  -141,
+    -142,  -142,  -142,  -142,  -142,  -142,  -142,  -142,  -142,  -142,
+     -28,   -24,    82,   -40,  -142,  -142,    73,  -142,    74,  -142,
+     -49,  -142,  -142,   -25,  -142,  -142,  -142,  -142,  -142
 };
 
 /* YYTABLE[YYPACT[STATE-NUM]].  What to do in state STATE-NUM.  If
@@ -743,78 +689,76 @@ static const yytype_int16 yypgoto[] =
 #define YYTABLE_NINF -1
 static const yytype_uint8 yytable[] =
 {
-       9,    55,    46,   123,    87,   105,     9,    36,    37,    38,
-      39,    40,    88,    12,    14,    61,   153,    22,    62,    63,
-      55,    23,    64,   116,    65,   112,     1,    89,    55,    11,
-     117,   118,   119,     2,   120,     3,   121,    41,   122,    42,
-       4,   164,    43,    26,    66,   157,   124,   127,   162,   163,
-      67,    27,    44,   169,   171,    45,   133,   130,   154,   166,
-      30,   168,   170,   158,    55,    55,   101,    85,   102,    89,
-      89,    86,    31,   161,    55,    55,    33,   144,   103,    55,
-     145,   146,   147,   148,   135,    55,   136,    34,    55,   138,
-       2,     2,     3,     3,    24,    59,    25,     4,     4,   139,
-      60,    36,    37,    38,    39,    40,    97,    83,    98,    61,
-      84,   159,    62,    63,   142,    24,    64,   165,    65,    23,
-      36,    37,    38,    39,    40,   106,    89,    55,   160,   109,
-     110,    41,    90,    42,   108,   113,    43,   134,    66,   155,
-     115,   128,   137,   149,    67,   150,    44,   152,   151,    45,
-      41,    86,    42,   167,    13,    43,    36,    37,    38,    39,
-      40,    35,   129,   111,    32,    44,   156,    82,    45,   131,
-      36,    37,    38,    39,    40,   107,    91,    92,    93,    94,
-      95,    96,     0,     0,     0,    97,    41,    98,    42,   132,
-       0,    43,     0,     0,     0,     0,     0,     0,     0,     0,
-      41,    44,    42,     0,    45,    43,     0,     0,     0,     0,
-       0,     0,     0,     0,     0,    44
+       9,    55,    46,   123,   105,    88,     9,    11,    36,    37,
+      38,    39,    40,   164,    61,    87,   153,    62,    63,    12,
+      55,    64,    24,    65,    25,   169,   171,    89,    55,    36,
+      37,    38,    39,    40,   162,   163,   112,    14,    41,    42,
+      24,    43,   165,    66,   157,   101,   102,   168,   170,    67,
+     130,    44,    97,    98,    45,   133,   103,   124,   127,    41,
+      42,    26,    43,   158,    55,    55,   154,    27,    30,   166,
+      33,     1,    44,   161,    55,    55,     2,    89,     3,    55,
+      89,    31,    34,     4,   135,    55,   136,    59,    55,   138,
+     144,   145,   146,   147,   148,    22,    60,    83,    84,    23,
+      36,    37,    38,    39,    40,    23,    61,    85,    90,    62,
+      63,    86,   109,    64,   142,    65,   108,    36,    37,    38,
+      39,    40,   159,    89,   106,   110,   113,    55,   160,   115,
+      41,    42,   128,    43,   134,    66,   137,   149,     2,   155,
+       3,    67,   151,    44,   150,     4,    45,    41,    42,    86,
+      43,    36,    37,    38,    39,    40,   152,   167,   111,    13,
+      44,    35,   156,    45,    91,    92,    93,    94,   107,    32,
+      82,   129,   131,     0,   132,    95,    96,    97,    98,     0,
+       0,    41,    42,     2,    43,     3,     0,     0,     0,     0,
+       4,     0,   139,     0,    44,     0,     0,    45,     0,   116,
+     117,   118,   119,   120,   121,   122
 };
 
 static const yytype_int16 yycheck[] =
 {
-       0,    26,    26,    83,    43,    53,     6,     3,     4,     5,
-       6,     7,    45,     0,     3,    11,    39,    38,    14,    15,
-      45,    42,    18,    21,    20,    64,     3,    50,    53,    38,
-      28,    29,    30,    10,    32,    12,    34,    33,    36,    35,
-      17,   154,    38,    45,    40,    41,    85,    86,   153,   154,
-      46,     3,    48,   166,   167,    51,   104,    90,    39,    39,
-      39,   166,   167,   143,    89,    90,    35,    38,    37,    50,
-      50,    42,    46,   153,    99,   100,     4,   116,    47,   104,
-     119,   120,   121,   122,   109,   110,   110,     3,   113,   113,
-      10,    10,    12,    12,    44,    42,    46,    17,    17,    19,
-      44,     3,     4,     5,     6,     7,    31,    39,    33,    11,
-      43,   150,    14,    15,   114,    44,    18,    46,    20,    42,
-       3,     4,     5,     6,     7,    43,    50,   152,   152,    38,
-      38,    33,    49,    35,    46,    38,    38,     3,    40,   139,
-      46,    39,    46,    39,    46,    44,    48,    16,    43,    51,
-      33,    42,    35,    13,     6,    38,     3,     4,     5,     6,
-       7,    24,    89,    46,    22,    48,   141,    31,    51,    99,
-       3,     4,     5,     6,     7,    60,    22,    23,    24,    25,
-      26,    27,    -1,    -1,    -1,    31,    33,    33,    35,   100,
-      -1,    38,    -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,
-      33,    48,    35,    -1,    51,    38,    -1,    -1,    -1,    -1,
-      -1,    -1,    -1,    -1,    -1,    48
+       0,    26,    26,    83,    53,    45,     6,    36,     3,     4,
+       5,     6,     7,   154,     9,    43,    37,    12,    13,     0,
+      45,    16,    42,    18,    44,   166,   167,    48,    53,     3,
+       4,     5,     6,     7,   153,   154,    64,     3,    33,    34,
+      42,    36,    44,    38,    39,    34,    35,   166,   167,    44,
+      90,    46,    32,    33,    49,   104,    45,    85,    86,    33,
+      34,    43,    36,   143,    89,    90,    37,     3,    37,    37,
+       4,     3,    46,   153,    99,   100,     8,    48,    10,   104,
+      48,    44,     3,    15,   109,   110,   110,    40,   113,   113,
+     118,   119,   120,   121,   122,    36,    42,    37,    41,    40,
+       3,     4,     5,     6,     7,    40,     9,    36,    47,    12,
+      13,    40,    36,    16,   114,    18,    44,     3,     4,     5,
+       6,     7,   150,    48,    41,    36,    36,   152,   152,    44,
+      33,    34,    37,    36,     3,    38,    44,    37,     8,   139,
+      10,    44,    41,    46,    42,    15,    49,    33,    34,    40,
+      36,     3,     4,     5,     6,     7,    14,    11,    44,     6,
+      46,    24,   141,    49,    19,    20,    21,    22,    60,    22,
+      31,    89,    99,    -1,   100,    30,    31,    32,    33,    -1,
+      -1,    33,    34,     8,    36,    10,    -1,    -1,    -1,    -1,
+      15,    -1,    17,    -1,    46,    -1,    -1,    49,    -1,    23,
+      24,    25,    26,    27,    28,    29
 };
 
 /* YYSTOS[STATE-NUM] -- The (internal number of the) accessing
    symbol of state STATE-NUM.  */
 static const yytype_uint8 yystos[] =
 {
-       0,     3,    10,    12,    17,    53,    54,    55,    56,    62,
-      63,    38,     0,    55,     3,    58,    59,    60,    62,    64,
-      65,    66,    38,    42,    44,    46,    45,     3,    67,    68,
-      39,    46,    64,     4,     3,    59,     3,     4,     5,     6,
-       7,    33,    35,    38,    48,    51,    83,    84,    85,    86,
-      88,    90,    92,    93,    94,    95,    96,    97,   100,    42,
-      44,    11,    14,    15,    18,    20,    40,    46,    69,    70,
-      71,    72,    75,    76,    77,    78,    79,    80,    81,    82,
-      83,    95,    66,    39,    43,    38,    42,    82,    85,    50,
-      49,    22,    23,    24,    25,    26,    27,    31,    33,    87,
-      89,    35,    37,    47,    91,    92,    43,    68,    46,    38,
-      38,    46,    82,    38,    73,    46,    21,    28,    29,    30,
-      32,    34,    36,    69,    82,    98,    99,    82,    39,    84,
-      85,    88,    90,    92,     3,    95,    83,    46,    83,    19,
-      57,    61,    62,    74,    82,    82,    82,    82,    82,    39,
-      44,    43,    16,    39,    39,    62,    58,    41,    69,    82,
-      83,    69,    70,    70,    71,    46,    39,    13,    70,    71,
-      70,    71
+       0,     3,     8,    10,    15,    51,    52,    53,    54,    60,
+      61,    36,     0,    53,     3,    56,    57,    58,    60,    62,
+      63,    64,    36,    40,    42,    44,    43,     3,    65,    66,
+      37,    44,    62,     4,     3,    57,     3,     4,     5,     6,
+       7,    33,    34,    36,    46,    49,    81,    82,    83,    84,
+      86,    88,    90,    91,    92,    93,    94,    95,    98,    40,
+      42,     9,    12,    13,    16,    18,    38,    44,    67,    68,
+      69,    70,    73,    74,    75,    76,    77,    78,    79,    80,
+      81,    93,    64,    37,    41,    36,    40,    80,    83,    48,
+      47,    19,    20,    21,    22,    30,    31,    32,    33,    85,
+      87,    34,    35,    45,    89,    90,    41,    66,    44,    36,
+      36,    44,    80,    36,    71,    44,    23,    24,    25,    26,
+      27,    28,    29,    67,    80,    96,    97,    80,    37,    82,
+      83,    86,    88,    90,     3,    93,    81,    44,    81,    17,
+      55,    59,    60,    72,    80,    80,    80,    80,    80,    37,
+      42,    41,    14,    37,    37,    60,    56,    39,    67,    80,
+      81,    67,    68,    68,    69,    44,    37,    11,    68,    69,
+      68,    69
 };
 
 #define yyerrok		(yyerrstatus = 0)
@@ -1629,19 +1573,19 @@ yyreduce:
   switch (yyn)
     {
         case 2:
-#line 117 "c-.y"
+#line 111 "c-.y"
     { 
                                 syntaxTree = (yyvsp[(1) - (1)].treeNode);
                             ;}
     break;
 
   case 3:
-#line 122 "c-.y"
+#line 116 "c-.y"
     {
                                TreeNode *trav = (yyvsp[(1) - (2)].treeNode);
                                if(trav != NULL) {
-                                   while (trav -> sibling != NULL) trav = trav -> sibling;
-                                   trav -> sibling = (yyvsp[(2) - (2)].treeNode);
+                                   while (trav->sibling != NULL) trav = trav->sibling;
+                                   trav->sibling = (yyvsp[(2) - (2)].treeNode);
                                    (yyval.treeNode) = (yyvsp[(1) - (2)].treeNode);
                                } else {
                                    (yyval.treeNode) = (yyvsp[(2) - (2)].treeNode);
@@ -1650,28 +1594,28 @@ yyreduce:
     break;
 
   case 4:
-#line 132 "c-.y"
+#line 126 "c-.y"
     { (yyval.treeNode) = (yyvsp[(1) - (1)].treeNode); ;}
     break;
 
   case 5:
-#line 135 "c-.y"
+#line 129 "c-.y"
     { (yyval.treeNode) = (yyvsp[(1) - (1)].treeNode); ;}
     break;
 
   case 6:
-#line 136 "c-.y"
+#line 130 "c-.y"
     { (yyval.treeNode) = (yyvsp[(1) - (1)].treeNode); ;}
     break;
 
   case 7:
-#line 141 "c-.y"
+#line 135 "c-.y"
     {
                                 TreeNode *complete = (yyvsp[(2) - (3)].treeNode);
                                 if(complete != NULL) {
                                     do {
-                                        complete -> declType = (yyvsp[(1) - (3)].integer);
-                                        complete = complete -> sibling;
+                                        complete->declType = (yyvsp[(1) - (3)].declType);
+                                        complete = complete->sibling;
 
                                     } while(complete != NULL);
                                     (yyval.treeNode) = (yyvsp[(2) - (3)].treeNode);
@@ -1682,14 +1626,14 @@ yyreduce:
     break;
 
   case 8:
-#line 156 "c-.y"
+#line 150 "c-.y"
     {
                                 TreeNode *complete = (yyvsp[(2) - (3)].treeNode);
                                 if(complete != NULL) {
                                     do {
-                                        complete -> declType = (yyvsp[(1) - (3)].treeNode) -> declType;
-                                        complete -> isStatic = (yyvsp[(1) - (3)].treeNode) -> isStatic;
-                                        complete = complete -> sibling;
+                                        complete->declType = (yyvsp[(1) - (3)].treeNode)->declType;
+                                        complete->isStatic = (yyvsp[(1) - (3)].treeNode)->isStatic;
+                                        complete = complete->sibling;
                                     } while(complete != NULL); 
                                     (yyval.treeNode) = (yyvsp[(2) - (3)].treeNode);
                                 } else {
@@ -1699,12 +1643,12 @@ yyreduce:
     break;
 
   case 9:
-#line 171 "c-.y"
+#line 165 "c-.y"
     {
                                TreeNode *trav = (yyvsp[(1) - (3)].treeNode);
                                if(trav != NULL) {
-                                    while(trav -> sibling != NULL) trav = trav -> sibling;
-                                    trav -> sibling = (yyvsp[(3) - (3)].treeNode); 
+                                    while(trav->sibling != NULL) trav = trav->sibling;
+                                    trav->sibling = (yyvsp[(3) - (3)].treeNode); 
                                     (yyval.treeNode) = (yyvsp[(1) - (3)].treeNode); 
                                 } else {
                                     (yyval.treeNode) = (yyvsp[(3) - (3)].treeNode);
@@ -1713,114 +1657,116 @@ yyreduce:
     break;
 
   case 10:
-#line 181 "c-.y"
+#line 175 "c-.y"
     { (yyval.treeNode) = (yyvsp[(1) - (1)].treeNode); ;}
     break;
 
   case 11:
-#line 184 "c-.y"
+#line 178 "c-.y"
     { (yyval.treeNode) = (yyvsp[(1) - (1)].treeNode); ;}
     break;
 
   case 12:
-#line 185 "c-.y"
+#line 179 "c-.y"
     {
-                                (yyvsp[(1) - (3)].treeNode) -> child[0] = (yyvsp[(3) - (3)].treeNode); // <- NOT NULL, SHOULD BE $3
+                                (yyvsp[(1) - (3)].treeNode)->child[0] = (yyvsp[(3) - (3)].treeNode); // <- NOT NULL, SHOULD BE $3
                                 (yyval.treeNode) = (yyvsp[(1) - (3)].treeNode);  
                             ;}
     break;
 
   case 13:
-#line 191 "c-.y"
+#line 185 "c-.y"
     { 
                                 (yyval.treeNode) = newDeclNode(VarK);
-                                (yyval.treeNode) -> attr.name = (yyvsp[(1) - (1)].token.value.sval);
+                                (yyval.treeNode)->attr.name = (yyvsp[(1) - (1)].token).value.sval;
+                                (yyval.treeNode)->lineno = (yyvsp[(1) - (1)].token).lineno;
                             ;}
     break;
 
   case 14:
-#line 195 "c-.y"
+#line 190 "c-.y"
     {
                                 (yyval.treeNode) = newDeclNode(VarK);
-                                (yyval.treeNode) -> attr.name = (yyvsp[(1) - (4)].token.value.sval); 
-                                (yyval.treeNode) -> isArray = true;
-                                (yyval.treeNode) -> arrayLen = (yyvsp[(3) - (4)].token.value.ival);
+                                (yyval.treeNode)->attr.name = (yyvsp[(1) - (4)].token).value.sval; 
+                                (yyval.treeNode)->isArray = true;
+                                (yyval.treeNode)->arrayLen = (yyvsp[(3) - (4)].token).value.ival;
+                                (yyval.treeNode)->lineno = (yyvsp[(1) - (4)].token).lineno;
                             ;}
     break;
 
   case 15:
-#line 203 "c-.y"
+#line 199 "c-.y"
     {
                                 (yyval.treeNode) = newDeclNode(VarK);
-                                (yyval.treeNode) -> isStatic = true;
-                                (yyval.treeNode) -> declType = (yyvsp[(2) - (2)].integer);
+                                (yyval.treeNode)->isStatic = true;
+                                (yyval.treeNode)->declType = (yyvsp[(2) - (2)].declType);
                             ;}
     break;
 
   case 16:
-#line 208 "c-.y"
+#line 204 "c-.y"
     {
                                 (yyval.treeNode) = newDeclNode(VarK);
-                                (yyval.treeNode) -> declType = (yyvsp[(1) - (1)].integer);
+                                (yyval.treeNode)->declType = (yyvsp[(1) - (1)].declType);
                             ;}
     break;
 
   case 17:
-#line 214 "c-.y"
-    { (yyval.integer) = Int; ;}
+#line 210 "c-.y"
+    { (yyval.declType) = Int; ;}
     break;
 
   case 18:
-#line 215 "c-.y"
-    { (yyval.integer) = Bool; ;}
+#line 211 "c-.y"
+    { (yyval.declType) = Bool; ;}
     break;
 
   case 19:
-#line 216 "c-.y"
-    { (yyval.integer) = Char; ;}
+#line 212 "c-.y"
+    { (yyval.declType) = Char; ;}
     break;
 
   case 20:
-#line 220 "c-.y"
+#line 216 "c-.y"
     {
                                 (yyval.treeNode) = newDeclNode(FuncK);
-                                (yyval.treeNode) -> declType = (yyvsp[(1) - (6)].integer);  
-                                (yyval.treeNode) -> attr.name = (yyvsp[(2) - (6)].token.value.sval);
-                                (yyval.treeNode) -> child[0] = (yyvsp[(4) - (6)].treeNode);
-                                (yyval.treeNode) -> child[1] = (yyvsp[(6) - (6)].treeNode); 
-                                (yyval.treeNode) -> lineno = (yyvsp[(3) - (6)].token.value.ival); // Allows for correct line no
+                                (yyval.treeNode)->declType = (yyvsp[(1) - (6)].declType);  
+                                (yyval.treeNode)->attr.name = (yyvsp[(2) - (6)].token).value.sval;
+                                (yyval.treeNode)->child[0] = (yyvsp[(4) - (6)].treeNode);
+                                (yyval.treeNode)->child[1] = (yyvsp[(6) - (6)].treeNode); 
+                                (yyval.treeNode)->lineno = (yyvsp[(3) - (6)].token).lineno; // Allows for correct line no
                             ;}
     break;
 
   case 21:
-#line 229 "c-.y"
+#line 225 "c-.y"
     {
                                (yyval.treeNode) = newDeclNode(FuncK);
-                               (yyval.treeNode) -> declType = Void;
-                               (yyval.treeNode) -> attr.name = (yyvsp[(1) - (5)].token.value.sval);
-                               (yyval.treeNode) -> child[0] = (yyvsp[(3) - (5)].treeNode);
-                               (yyval.treeNode) -> child[1] = (yyvsp[(5) - (5)].treeNode); 
-                               (yyval.treeNode) -> lineno = (yyvsp[(2) - (5)].token.value.ival);
+                               (yyval.treeNode)->declType = Void;
+                               (yyval.treeNode)->attr.name = (yyvsp[(1) - (5)].token).value.sval;
+                               (yyval.treeNode)->child[0] = (yyvsp[(3) - (5)].treeNode);
+                               (yyval.treeNode)->child[1] = (yyvsp[(5) - (5)].treeNode); 
+                               (yyval.treeNode)->lineno = (yyvsp[(2) - (5)].token).lineno;
                             ;}
     break;
 
   case 22:
-#line 239 "c-.y"
+#line 235 "c-.y"
     { (yyval.treeNode) = (yyvsp[(1) - (1)].treeNode); ;}
     break;
 
   case 23:
-#line 240 "c-.y"
+#line 236 "c-.y"
     { (yyval.treeNode) = NULL; ;}
     break;
 
   case 24:
-#line 243 "c-.y"
+#line 239 "c-.y"
     {
                                 TreeNode *trav = (yyvsp[(1) - (3)].treeNode);
                                 if(trav != NULL) {
-                                    while(trav -> sibling != NULL) trav = trav -> sibling;
-                                    trav -> sibling = (yyvsp[(3) - (3)].treeNode);
+                                    while(trav->sibling != NULL) trav = trav->sibling;
+                                    trav->sibling = (yyvsp[(3) - (3)].treeNode);
                                     (yyval.treeNode) = (yyvsp[(1) - (3)].treeNode);
                                 } else {
                                     (yyval.treeNode) = (yyvsp[(3) - (3)].treeNode); 
@@ -1829,18 +1775,18 @@ yyreduce:
     break;
 
   case 25:
-#line 253 "c-.y"
+#line 249 "c-.y"
     { (yyval.treeNode) = (yyvsp[(1) - (1)].treeNode); ;}
     break;
 
   case 26:
-#line 256 "c-.y"
+#line 252 "c-.y"
     {
                                 TreeNode *complete = (yyvsp[(2) - (2)].treeNode);
                                 if(complete != NULL) {
                                     do {
-                                        complete -> declType = (yyvsp[(1) - (2)].integer);
-                                        complete = complete -> sibling;
+                                        complete->declType = (yyvsp[(1) - (2)].declType);
+                                        complete = complete->sibling;
                                     } while(complete != NULL);
                                     (yyval.treeNode) = (yyvsp[(2) - (2)].treeNode);
                                 } else {
@@ -1850,12 +1796,12 @@ yyreduce:
     break;
 
   case 27:
-#line 270 "c-.y"
+#line 266 "c-.y"
     {
                                TreeNode *trav = (yyvsp[(1) - (3)].treeNode); 
                                if(trav != NULL) {
-                                   while(trav -> sibling != NULL) trav = trav -> sibling;
-                                   trav -> sibling = (yyvsp[(3) - (3)].treeNode);
+                                   while(trav->sibling != NULL) trav = trav->sibling;
+                                   trav->sibling = (yyvsp[(3) - (3)].treeNode);
                                    (yyval.treeNode) = (yyvsp[(1) - (3)].treeNode);
                                } else { 
                                    (yyval.treeNode) = (yyvsp[(3) - (3)].treeNode);
@@ -1864,94 +1810,94 @@ yyreduce:
     break;
 
   case 28:
-#line 280 "c-.y"
+#line 276 "c-.y"
     { (yyval.treeNode) = (yyvsp[(1) - (1)].treeNode); ;}
     break;
 
   case 29:
-#line 283 "c-.y"
+#line 279 "c-.y"
     { 
                                (yyval.treeNode) = newDeclNode(ParamK);
-                               (yyval.treeNode) -> attr.name = (yyvsp[(1) - (1)].token.value.sval);
+                               (yyval.treeNode)->attr.name = (yyvsp[(1) - (1)].token).value.sval;
                             ;}
     break;
 
   case 30:
-#line 287 "c-.y"
+#line 283 "c-.y"
     {
                                (yyval.treeNode) = newDeclNode(ParamK);
-                               (yyval.treeNode) -> attr.name = (yyvsp[(1) - (3)].token.value.sval);
-                               (yyval.treeNode) -> isArray = true;
+                               (yyval.treeNode)->attr.name = (yyvsp[(1) - (3)].token).value.sval;
+                               (yyval.treeNode)->isArray = true;
                             ;}
     break;
 
   case 31:
-#line 296 "c-.y"
+#line 292 "c-.y"
     { (yyval.treeNode) = (yyvsp[(1) - (1)].treeNode); ;}
     break;
 
   case 32:
-#line 297 "c-.y"
+#line 293 "c-.y"
     { (yyval.treeNode) = (yyvsp[(1) - (1)].treeNode); ;}
     break;
 
   case 33:
-#line 300 "c-.y"
+#line 296 "c-.y"
     { (yyval.treeNode) = (yyvsp[(1) - (1)].treeNode); ;}
     break;
 
   case 34:
-#line 301 "c-.y"
+#line 297 "c-.y"
     { (yyval.treeNode) = (yyvsp[(1) - (1)].treeNode); ;}
     break;
 
   case 35:
-#line 302 "c-.y"
+#line 298 "c-.y"
     { (yyval.treeNode) = (yyvsp[(1) - (1)].treeNode); ;}
     break;
 
   case 36:
-#line 303 "c-.y"
+#line 299 "c-.y"
     { (yyval.treeNode) = (yyvsp[(1) - (1)].treeNode); ;}
     break;
 
   case 37:
-#line 304 "c-.y"
+#line 300 "c-.y"
     { (yyval.treeNode) = (yyvsp[(1) - (1)].treeNode); ;}
     break;
 
   case 38:
-#line 305 "c-.y"
+#line 301 "c-.y"
     { (yyval.treeNode) = (yyvsp[(1) - (1)].treeNode); ;}
     break;
 
   case 39:
-#line 308 "c-.y"
+#line 304 "c-.y"
     { (yyval.treeNode) = (yyvsp[(1) - (1)].treeNode); ;}
     break;
 
   case 40:
-#line 309 "c-.y"
+#line 305 "c-.y"
     { (yyval.treeNode) = (yyvsp[(1) - (1)].treeNode); ;}
     break;
 
   case 41:
-#line 312 "c-.y"
+#line 308 "c-.y"
     {
                                (yyval.treeNode) = newStmtNode(CompK); 
-                               (yyval.treeNode) -> child[0] = (yyvsp[(2) - (4)].treeNode);
-                               (yyval.treeNode) -> child[1] = (yyvsp[(3) - (4)].treeNode); 
-                               (yyval.treeNode) -> lineno = (yyvsp[(1) - (4)].token.value.ival);
+                               (yyval.treeNode)->child[0] = (yyvsp[(2) - (4)].treeNode);
+                               (yyval.treeNode)->child[1] = (yyvsp[(3) - (4)].treeNode); 
+                               (yyval.treeNode)->lineno = (yyvsp[(1) - (4)].token).lineno;
                             ;}
     break;
 
   case 42:
-#line 320 "c-.y"
+#line 316 "c-.y"
     {
                                 TreeNode *trav = (yyvsp[(1) - (2)].treeNode); 
                                 if(trav != NULL) {
-                                    while(trav -> sibling != NULL) trav = trav -> sibling;
-                                    trav -> sibling = (yyvsp[(2) - (2)].treeNode);
+                                    while(trav->sibling != NULL) trav = trav->sibling;
+                                    trav->sibling = (yyvsp[(2) - (2)].treeNode);
                                     (yyval.treeNode) = (yyvsp[(1) - (2)].treeNode);
                                 } else {
                                     (yyval.treeNode) = (yyvsp[(2) - (2)].treeNode); 
@@ -1960,17 +1906,17 @@ yyreduce:
     break;
 
   case 43:
-#line 330 "c-.y"
+#line 326 "c-.y"
     { (yyval.treeNode) = NULL; ;}
     break;
 
   case 44:
-#line 333 "c-.y"
+#line 329 "c-.y"
     {
                                 TreeNode *trav = (yyvsp[(1) - (2)].treeNode); 
                                 if(trav != NULL) {
-                                    while(trav -> sibling != NULL) trav = trav -> sibling;
-                                    trav -> sibling = (yyvsp[(2) - (2)].treeNode);
+                                    while(trav->sibling != NULL) trav = trav->sibling;
+                                    trav->sibling = (yyvsp[(2) - (2)].treeNode);
                                     (yyval.treeNode) = (yyvsp[(1) - (2)].treeNode);
                                 } else {
                                     (yyval.treeNode) = (yyvsp[(2) - (2)].treeNode);
@@ -1979,143 +1925,147 @@ yyreduce:
     break;
 
   case 45:
-#line 343 "c-.y"
+#line 339 "c-.y"
     { (yyval.treeNode) = NULL; ;}
     break;
 
   case 46:
-#line 346 "c-.y"
+#line 342 "c-.y"
     { (yyval.treeNode) = (yyvsp[(1) - (2)].treeNode); ;}
     break;
 
   case 47:
-#line 347 "c-.y"
+#line 343 "c-.y"
     { (yyval.treeNode) = NULL; ;}
     break;
 
   case 48:
-#line 350 "c-.y"
+#line 346 "c-.y"
     {
                                 (yyval.treeNode) = newStmtNode(IfK);
-                                (yyval.treeNode) -> attr.name = (yyvsp[(1) - (7)].token.value.sval);
-                                (yyval.treeNode) -> child[0] = (yyvsp[(3) - (7)].treeNode);
-                                (yyval.treeNode) -> child[1] = (yyvsp[(5) - (7)].treeNode);
-                                (yyval.treeNode) -> child[2] = (yyvsp[(7) - (7)].treeNode);
-                                (yyval.treeNode) -> lineno = (yyvsp[(2) - (7)].token.value.ival);
+                                (yyval.treeNode)->attr.name = (yyvsp[(1) - (7)].token).rtxt;
+                                (yyval.treeNode)->child[0] = (yyvsp[(3) - (7)].treeNode);
+                                (yyval.treeNode)->child[1] = (yyvsp[(5) - (7)].treeNode);
+                                (yyval.treeNode)->child[2] = (yyvsp[(7) - (7)].treeNode);
+                                (yyval.treeNode)->lineno = (yyvsp[(1) - (7)].token).lineno;
                             ;}
     break;
 
   case 49:
-#line 360 "c-.y"
+#line 356 "c-.y"
     {
                                 (yyval.treeNode) = newStmtNode(IfK);
-                                (yyval.treeNode) -> attr.name = (yyvsp[(1) - (7)].token.value.sval);
-                                (yyval.treeNode) -> child[0] = (yyvsp[(3) - (7)].treeNode);
-                                (yyval.treeNode) -> child[1] = (yyvsp[(5) - (7)].treeNode);
-                                (yyval.treeNode) -> child[2] = (yyvsp[(7) - (7)].treeNode);
-                                (yyval.treeNode) -> lineno = (yyvsp[(2) - (7)].token.value.ival);
+                                (yyval.treeNode)->attr.name = (yyvsp[(1) - (7)].token).rtxt;
+                                (yyval.treeNode)->child[0] = (yyvsp[(3) - (7)].treeNode);
+                                (yyval.treeNode)->child[1] = (yyvsp[(5) - (7)].treeNode);
+                                (yyval.treeNode)->child[2] = (yyvsp[(7) - (7)].treeNode);
+                                (yyval.treeNode)->lineno = (yyvsp[(1) - (7)].token).lineno;
                             ;}
     break;
 
   case 50:
-#line 368 "c-.y"
+#line 364 "c-.y"
     {
                                 (yyval.treeNode) = newStmtNode(IfK);
-                                (yyval.treeNode) -> attr.name = (yyvsp[(1) - (5)].token.value.sval);
-                                (yyval.treeNode) -> child[0] = (yyvsp[(3) - (5)].treeNode);
-                                (yyval.treeNode) -> child[1] = (yyvsp[(5) - (5)].treeNode);
-                                (yyval.treeNode) -> lineno = (yyvsp[(2) - (5)].token.value.ival);
+                                (yyval.treeNode)->attr.name = (yyvsp[(1) - (5)].token).rtxt;
+                                (yyval.treeNode)->child[0] = (yyvsp[(3) - (5)].treeNode);
+                                (yyval.treeNode)->child[1] = (yyvsp[(5) - (5)].treeNode);
+                                (yyval.treeNode)->lineno = (yyvsp[(1) - (5)].token).lineno;
                             ;}
     break;
 
   case 51:
-#line 377 "c-.y"
+#line 373 "c-.y"
     {
                                 (yyval.treeNode) = newStmtNode(WhileK);
-                                (yyval.treeNode) -> attr.name = (yyvsp[(1) - (5)].token.value.sval);
-                                (yyval.treeNode) -> child[0] = (yyvsp[(3) - (5)].treeNode);
-                                (yyval.treeNode) -> child[1] = (yyvsp[(5) - (5)].treeNode);
-                                (yyval.treeNode) -> lineno = (yyvsp[(2) - (5)].token.value.ival);
+                                (yyval.treeNode)->attr.name = (yyvsp[(1) - (5)].token).rtxt;
+                                (yyval.treeNode)->child[0] = (yyvsp[(3) - (5)].treeNode);
+                                (yyval.treeNode)->child[1] = (yyvsp[(5) - (5)].treeNode);
+                                (yyval.treeNode)->lineno = (yyvsp[(1) - (5)].token).lineno;
                             ;}
     break;
 
   case 52:
-#line 384 "c-.y"
+#line 380 "c-.y"
     {
                                 (yyval.treeNode) = newStmtNode(ForK);
-                                (yyval.treeNode) -> attr.name = (yyvsp[(1) - (7)].token.value.sval);
-                                (yyval.treeNode) -> child[0] = (yyvsp[(3) - (7)].treeNode);
-                                (yyval.treeNode) -> child[1] = (yyvsp[(5) - (7)].treeNode);
-                                (yyval.treeNode) -> child[2] = (yyvsp[(7) - (7)].treeNode);
-                                (yyval.treeNode) -> lineno = (yyvsp[(2) - (7)].token.value.ival);
+                                (yyval.treeNode)->attr.name = (yyvsp[(1) - (7)].token).rtxt;
+                                (yyval.treeNode)->child[0] = (yyvsp[(3) - (7)].treeNode);
+                                (yyval.treeNode)->child[1] = (yyvsp[(5) - (7)].treeNode);
+                                (yyval.treeNode)->child[2] = (yyvsp[(7) - (7)].treeNode);
+                                (yyval.treeNode)->lineno = (yyvsp[(1) - (7)].token).lineno;
                             ;}
     break;
 
   case 53:
-#line 394 "c-.y"
+#line 390 "c-.y"
     {
                                 (yyval.treeNode) = newStmtNode(WhileK);
-                                (yyval.treeNode) -> attr.name = (yyvsp[(1) - (5)].token.value.sval);
-                                (yyval.treeNode) -> child[0] = (yyvsp[(3) - (5)].treeNode);
-                                (yyval.treeNode) -> child[1] = (yyvsp[(5) - (5)].treeNode);
-                                (yyval.treeNode) -> lineno = (yyvsp[(2) - (5)].token.value.ival);
+                                (yyval.treeNode)->attr.name = (yyvsp[(1) - (5)].token).rtxt;
+                                (yyval.treeNode)->child[0] = (yyvsp[(3) - (5)].treeNode);
+                                (yyval.treeNode)->child[1] = (yyvsp[(5) - (5)].treeNode);
+                                (yyval.treeNode)->lineno = (yyvsp[(1) - (5)].token).lineno;
                             ;}
     break;
 
   case 54:
-#line 401 "c-.y"
+#line 397 "c-.y"
     {
                                 (yyval.treeNode) = newStmtNode(ForK);
-                                (yyval.treeNode) -> attr.name = (yyvsp[(1) - (7)].token.value.sval);
-                                (yyval.treeNode) -> child[0] = (yyvsp[(3) - (7)].treeNode); 
-                                (yyval.treeNode) -> child[1] = (yyvsp[(5) - (7)].treeNode);
-                                (yyval.treeNode) -> child[2] = (yyvsp[(7) - (7)].treeNode);
-                                (yyval.treeNode) -> lineno = (yyvsp[(2) - (7)].token.value.ival);
+                                (yyval.treeNode)->attr.name = (yyvsp[(1) - (7)].token).rtxt;
+                                (yyval.treeNode)->child[0] = (yyvsp[(3) - (7)].treeNode); 
+                                (yyval.treeNode)->child[1] = (yyvsp[(5) - (7)].treeNode);
+                                (yyval.treeNode)->child[2] = (yyvsp[(7) - (7)].treeNode);
+                                (yyval.treeNode)->lineno = (yyvsp[(1) - (7)].token).lineno;
                             ;}
     break;
 
   case 55:
-#line 411 "c-.y"
+#line 407 "c-.y"
     { 
                                 (yyval.treeNode) = newStmtNode(ReturnK);
-                                (yyval.treeNode) -> attr.name = (yyvsp[(1) - (2)].token.value.sval);
+                                (yyval.treeNode)->attr.name = (yyvsp[(1) - (2)].token).rtxt;
+                                (yyval.treeNode)->lineno = (yyvsp[(1) - (2)].token).lineno;
                             ;}
     break;
 
   case 56:
-#line 415 "c-.y"
+#line 412 "c-.y"
     {
                                 (yyval.treeNode) = newStmtNode(ReturnK);
-                                (yyval.treeNode) -> attr.name = (yyvsp[(1) - (3)].token.value.sval);
-                                (yyval.treeNode) -> child[0] = (yyvsp[(2) - (3)].treeNode);
+                                (yyval.treeNode)->attr.name = (yyvsp[(1) - (3)].token).rtxt;
+                                (yyval.treeNode)->child[0] = (yyvsp[(2) - (3)].treeNode);
+                                (yyval.treeNode)->lineno = (yyvsp[(1) - (3)].token).lineno;
                             ;}
     break;
 
   case 57:
-#line 422 "c-.y"
+#line 420 "c-.y"
     { 
                                 (yyval.treeNode) = newStmtNode(BreakK);
-                                (yyval.treeNode) -> attr.name = (yyvsp[(1) - (2)].token.value.sval);
+                                (yyval.treeNode)->attr.name = (yyvsp[(1) - (2)].token).rtxt;
                             ;}
     break;
 
   case 58:
-#line 430 "c-.y"
+#line 428 "c-.y"
     {
                                 (yyval.treeNode) = newExprNode(AssignK);
-                                (yyval.treeNode) -> attr.name = (yyvsp[(2) - (3)].token.value.sval);
-                                (yyval.treeNode) -> child[0] = (yyvsp[(1) - (3)].treeNode);
-                                (yyval.treeNode) -> child[1] = (yyvsp[(3) - (3)].treeNode);
+                                (yyval.treeNode)->attr.name = (yyvsp[(2) - (3)].token).rtxt;
+                                (yyval.treeNode)->child[0] = (yyvsp[(1) - (3)].treeNode);
+                                (yyval.treeNode)->child[1] = (yyvsp[(3) - (3)].treeNode);
+                                (yyval.treeNode)->lineno = (yyvsp[(2) - (3)].token).lineno;
                             ;}
     break;
 
   case 59:
-#line 436 "c-.y"
+#line 435 "c-.y"
     {
                                 (yyval.treeNode) = newExprNode(AssignK);
-                                (yyval.treeNode) -> attr.name = (yyvsp[(2) - (3)].token.value.sval);
-                                (yyval.treeNode) -> child[0] = (yyvsp[(1) - (3)].treeNode);
-                                (yyval.treeNode) -> child[1] = (yyvsp[(3) - (3)].treeNode);
+                                (yyval.treeNode)->attr.name = (yyvsp[(2) - (3)].token).rtxt;
+                                (yyval.treeNode)->child[0] = (yyvsp[(1) - (3)].treeNode);
+                                (yyval.treeNode)->child[1] = (yyvsp[(3) - (3)].treeNode);
+                                (yyval.treeNode)->lineno = (yyvsp[(2) - (3)].token).lineno;
                             ;}
     break;
 
@@ -2123,296 +2073,302 @@ yyreduce:
 #line 442 "c-.y"
     {
                                 (yyval.treeNode) = newExprNode(AssignK);
-                                (yyval.treeNode) -> attr.name = (yyvsp[(2) - (3)].token.value.sval);
-                                (yyval.treeNode) -> child[0] = (yyvsp[(1) - (3)].treeNode);
-                                (yyval.treeNode) -> child[1] = (yyvsp[(3) - (3)].treeNode);
+                                (yyval.treeNode)->attr.name = (yyvsp[(2) - (3)].token).rtxt;
+                                (yyval.treeNode)->child[0] = (yyvsp[(1) - (3)].treeNode);
+                                (yyval.treeNode)->child[1] = (yyvsp[(3) - (3)].treeNode);
+                                (yyval.treeNode)->lineno = (yyvsp[(2) - (3)].token).lineno;
                             ;}
     break;
 
   case 61:
-#line 448 "c-.y"
+#line 449 "c-.y"
     {
                                 (yyval.treeNode) = newExprNode(AssignK);
-                                (yyval.treeNode) -> attr.name = (yyvsp[(2) - (3)].token.value.sval);
-                                (yyval.treeNode) -> child[0] = (yyvsp[(1) - (3)].treeNode);
-                                (yyval.treeNode) -> child[1] = (yyvsp[(3) - (3)].treeNode);
+                                (yyval.treeNode)->attr.name = (yyvsp[(2) - (3)].token).rtxt;
+                                (yyval.treeNode)->child[0] = (yyvsp[(1) - (3)].treeNode);
+                                (yyval.treeNode)->child[1] = (yyvsp[(3) - (3)].treeNode);
+                                (yyval.treeNode)->lineno = (yyvsp[(2) - (3)].token).lineno;
                             ;}
     break;
 
   case 62:
-#line 454 "c-.y"
+#line 456 "c-.y"
     { 
                                 (yyval.treeNode) = newExprNode(AssignK);
-                                (yyval.treeNode) -> attr.name = (yyvsp[(2) - (3)].token.value.sval);
-                                (yyval.treeNode) -> child[0] = (yyvsp[(1) - (3)].treeNode);
-                                (yyval.treeNode) -> child[1] = (yyvsp[(3) - (3)].treeNode);
+                                (yyval.treeNode)->attr.name = (yyvsp[(2) - (3)].token).rtxt;
+                                (yyval.treeNode)->child[0] = (yyvsp[(1) - (3)].treeNode);
+                                (yyval.treeNode)->child[1] = (yyvsp[(3) - (3)].treeNode);
+                                (yyval.treeNode)->lineno = (yyvsp[(2) - (3)].token).lineno;
                             ;}
     break;
 
   case 63:
-#line 460 "c-.y"
+#line 463 "c-.y"
     {
                                 (yyval.treeNode) = newExprNode(AssignK);
-                                (yyval.treeNode) -> attr.name = (yyvsp[(2) - (2)].token.value.sval);
-                                (yyval.treeNode) -> child[0] = (yyvsp[(1) - (2)].treeNode);
+                                (yyval.treeNode)->attr.name = (yyvsp[(2) - (2)].token).rtxt;
+                                (yyval.treeNode)->child[0] = (yyvsp[(1) - (2)].treeNode);
+                                (yyval.treeNode)->lineno = (yyvsp[(2) - (2)].token).lineno;
                             ;}
     break;
 
   case 64:
-#line 465 "c-.y"
+#line 469 "c-.y"
     {
                                 (yyval.treeNode) = newExprNode(AssignK);
-                                (yyval.treeNode) -> attr.name = (yyvsp[(2) - (2)].token.value.sval);
-                                (yyval.treeNode) -> child[0] = (yyvsp[(1) - (2)].treeNode);
+                                (yyval.treeNode)->attr.name = (yyvsp[(2) - (2)].token).rtxt;
+                                (yyval.treeNode)->child[0] = (yyvsp[(1) - (2)].treeNode);
+                                (yyval.treeNode)->lineno = (yyvsp[(2) - (2)].token).lineno;
                             ;}
     break;
 
   case 65:
-#line 470 "c-.y"
+#line 475 "c-.y"
     { (yyval.treeNode) = (yyvsp[(1) - (1)].treeNode); ;}
     break;
 
   case 66:
-#line 473 "c-.y"
+#line 478 "c-.y"
     {
                                 (yyval.treeNode) = newExprNode(OpK);
-                                (yyval.treeNode) -> attr.name = (yyvsp[(2) - (3)].token.value.sval);
-                                (yyval.treeNode) -> child[0] = (yyvsp[(1) - (3)].treeNode);
-                                (yyval.treeNode) -> child[1] = (yyvsp[(3) - (3)].treeNode);
+                                (yyval.treeNode)->attr.name = (yyvsp[(2) - (3)].token).rtxt;
+                                (yyval.treeNode)->child[0] = (yyvsp[(1) - (3)].treeNode);
+                                (yyval.treeNode)->child[1] = (yyvsp[(3) - (3)].treeNode);
                             ;}
     break;
 
   case 67:
-#line 479 "c-.y"
+#line 484 "c-.y"
     { (yyval.treeNode) = (yyvsp[(1) - (1)].treeNode); ;}
     break;
 
   case 68:
-#line 482 "c-.y"
+#line 487 "c-.y"
     {
                                 (yyval.treeNode) = newExprNode(OpK);
-                                (yyval.treeNode) -> attr.name = (yyvsp[(2) - (3)].token.value.sval);
-                                (yyval.treeNode) -> child[0] = (yyvsp[(1) - (3)].treeNode);
-                                (yyval.treeNode) -> child[1] = (yyvsp[(3) - (3)].treeNode); 
+                                (yyval.treeNode)->attr.name = (yyvsp[(2) - (3)].token).rtxt;
+                                (yyval.treeNode)->child[0] = (yyvsp[(1) - (3)].treeNode);
+                                (yyval.treeNode)->child[1] = (yyvsp[(3) - (3)].treeNode); 
                             ;}
     break;
 
   case 69:
-#line 488 "c-.y"
+#line 493 "c-.y"
     { (yyval.treeNode) = (yyvsp[(1) - (1)].treeNode); ;}
     break;
 
   case 70:
-#line 491 "c-.y"
+#line 496 "c-.y"
     {
                                 (yyval.treeNode) = newExprNode(OpK);
-                                (yyval.treeNode) -> attr.name = (yyvsp[(1) - (2)].token.value.sval);
-                                (yyval.treeNode) -> child[0] = (yyvsp[(2) - (2)].treeNode);
+                                (yyval.treeNode)->attr.name = (yyvsp[(1) - (2)].token).rtxt;
+                                (yyval.treeNode)->child[0] = (yyvsp[(2) - (2)].treeNode);
                             ;}
     break;
 
   case 71:
-#line 496 "c-.y"
+#line 501 "c-.y"
     { (yyval.treeNode) = (yyvsp[(1) - (1)].treeNode); ;}
     break;
 
   case 72:
-#line 499 "c-.y"
+#line 504 "c-.y"
     {
                                (yyval.treeNode) = newExprNode(OpK);
-                               (yyval.treeNode) -> attr.name = (yyvsp[(2) - (3)].string);
-                               (yyval.treeNode) -> child[0] = (yyvsp[(1) - (3)].treeNode);
-                               (yyval.treeNode) -> child[1] = (yyvsp[(3) - (3)].treeNode);
+                               (yyval.treeNode)->attr.name = (yyvsp[(2) - (3)].token).rtxt;
+                               (yyval.treeNode)->child[0] = (yyvsp[(1) - (3)].treeNode);
+                               (yyval.treeNode)->child[1] = (yyvsp[(3) - (3)].treeNode);
                             ;}
     break;
 
   case 73:
-#line 505 "c-.y"
+#line 510 "c-.y"
     { (yyval.treeNode) = (yyvsp[(1) - (1)].treeNode); ;}
     break;
 
   case 74:
-#line 508 "c-.y"
-    { (yyval.string) = (yyvsp[(1) - (1)].token.value.sval); ;}
+#line 513 "c-.y"
+    { (yyval.token) = (yyvsp[(1) - (1)].token); ;}
     break;
 
   case 75:
-#line 509 "c-.y"
-    { (yyval.string) = (yyvsp[(1) - (1)].token.value.sval); ;}
+#line 514 "c-.y"
+    { (yyval.token) = (yyvsp[(1) - (1)].token); ;}
     break;
 
   case 76:
-#line 510 "c-.y"
-    { (yyval.string) = (yyvsp[(1) - (1)].token.value.sval); ;}
+#line 515 "c-.y"
+    { (yyval.token) = (yyvsp[(1) - (1)].token); ;}
     break;
 
   case 77:
-#line 511 "c-.y"
-    { (yyval.string) = (yyvsp[(1) - (1)].token.value.sval); ;}
+#line 516 "c-.y"
+    { (yyval.token) = (yyvsp[(1) - (1)].token); ;}
     break;
 
   case 78:
-#line 512 "c-.y"
-    { (yyval.string) = (yyvsp[(1) - (1)].token.value.sval); ;}
+#line 517 "c-.y"
+    { (yyval.token) = (yyvsp[(1) - (1)].token); ;}
     break;
 
   case 79:
-#line 513 "c-.y"
-    { (yyval.string) = (yyvsp[(1) - (1)].token.value.sval); ;}
+#line 518 "c-.y"
+    { (yyval.token) = (yyvsp[(1) - (1)].token); ;}
     break;
 
   case 80:
-#line 516 "c-.y"
+#line 521 "c-.y"
     {
                                 (yyval.treeNode) = newExprNode(OpK);
-                                (yyval.treeNode) -> attr.name = (yyvsp[(2) - (3)].string);
-                                (yyval.treeNode) -> child[0] = (yyvsp[(1) - (3)].treeNode);
-                                (yyval.treeNode) -> child[1] = (yyvsp[(3) - (3)].treeNode);
+                                (yyval.treeNode)->attr.name = (yyvsp[(2) - (3)].token).rtxt;
+                                (yyval.treeNode)->child[0] = (yyvsp[(1) - (3)].treeNode);
+                                (yyval.treeNode)->child[1] = (yyvsp[(3) - (3)].treeNode);
                             ;}
     break;
 
   case 81:
-#line 522 "c-.y"
+#line 527 "c-.y"
     { (yyval.treeNode) = (yyvsp[(1) - (1)].treeNode); ;}
     break;
 
   case 82:
-#line 525 "c-.y"
-    { (yyval.string) = (yyvsp[(1) - (1)].token.value.sval); ;}
+#line 530 "c-.y"
+    { (yyval.token) = (yyvsp[(1) - (1)].token); ;}
     break;
 
   case 83:
-#line 526 "c-.y"
-    { (yyval.string) = (yyvsp[(1) - (1)].token.value.sval); ;}
+#line 531 "c-.y"
+    { (yyval.token) = (yyvsp[(1) - (1)].token); ;}
     break;
 
   case 84:
-#line 529 "c-.y"
+#line 534 "c-.y"
     {
                                 (yyval.treeNode) = newExprNode(OpK);
-                                (yyval.treeNode) -> attr.name = (yyvsp[(2) - (3)].string);
-                                (yyval.treeNode) -> child[0] = (yyvsp[(1) - (3)].treeNode);
-                                (yyval.treeNode) -> child[1] = (yyvsp[(3) - (3)].treeNode);
+                                (yyval.treeNode)->attr.name = (yyvsp[(2) - (3)].token).rtxt;
+                                (yyval.treeNode)->child[0] = (yyvsp[(1) - (3)].treeNode);
+                                (yyval.treeNode)->child[1] = (yyvsp[(3) - (3)].treeNode);
+                                (yyval.treeNode)->lineno = (yyvsp[(2) - (3)].token).lineno;
                             ;}
     break;
 
   case 85:
-#line 535 "c-.y"
+#line 541 "c-.y"
     { (yyval.treeNode) = (yyvsp[(1) - (1)].treeNode); ;}
     break;
 
   case 86:
-#line 538 "c-.y"
-    { (yyval.string) = (yyvsp[(1) - (1)].token.value.sval); ;}
+#line 544 "c-.y"
+    { (yyval.token) = (yyvsp[(1) - (1)].token); ;}
     break;
 
   case 87:
-#line 539 "c-.y"
-    { (yyval.string) = (yyvsp[(1) - (1)].token.value.sval); ;}
+#line 545 "c-.y"
+    { (yyval.token) = (yyvsp[(1) - (1)].token); ;}
     break;
 
   case 88:
-#line 540 "c-.y"
-    { (yyval.string) = (yyvsp[(1) - (1)].token.value.sval); ;}
+#line 546 "c-.y"
+    { (yyval.token) = (yyvsp[(1) - (1)].token); ;}
     break;
 
   case 89:
-#line 543 "c-.y"
+#line 549 "c-.y"
     {
                                 (yyval.treeNode) = newExprNode(OpK);
-                                (yyval.treeNode) -> attr.name = (yyvsp[(1) - (2)].string);
-                                (yyval.treeNode) -> child[0] = (yyvsp[(2) - (2)].treeNode);
+                                (yyval.treeNode)->attr.name = (yyvsp[(1) - (2)].token).rtxt;
+                                (yyval.treeNode)->child[0] = (yyvsp[(2) - (2)].treeNode);
                             ;}
     break;
 
   case 90:
-#line 548 "c-.y"
+#line 554 "c-.y"
     { (yyval.treeNode) = (yyvsp[(1) - (1)].treeNode); ;}
     break;
 
   case 91:
-#line 551 "c-.y"
-    { (yyval.string) = (yyvsp[(1) - (1)].token.value.sval); ;}
+#line 557 "c-.y"
+    { (yyval.token) = (yyvsp[(1) - (1)].token); ;}
     break;
 
   case 92:
-#line 552 "c-.y"
-    { (yyval.string) = (yyvsp[(1) - (1)].token.value.sval); ;}
+#line 558 "c-.y"
+    { (yyval.token) = (yyvsp[(1) - (1)].token); ;}
     break;
 
   case 93:
-#line 553 "c-.y"
-    { (yyval.string) = (yyvsp[(1) - (1)].token.value.sval); ;}
+#line 559 "c-.y"
+    { (yyval.token) = (yyvsp[(1) - (1)].token); ;}
     break;
 
   case 94:
-#line 556 "c-.y"
+#line 562 "c-.y"
     { (yyval.treeNode) = (yyvsp[(1) - (1)].treeNode); ;}
     break;
 
   case 95:
-#line 557 "c-.y"
+#line 563 "c-.y"
     { (yyval.treeNode) = (yyvsp[(1) - (1)].treeNode); ;}
     break;
 
   case 96:
-#line 560 "c-.y"
+#line 566 "c-.y"
     {
                                (yyval.treeNode) = newExprNode(IdK); 
-                               (yyval.treeNode) -> attr.name = (yyvsp[(1) - (1)].token.value.sval);
+                               (yyval.treeNode)->attr.name = (yyvsp[(1) - (1)].token).value.sval;
                             ;}
     break;
 
   case 97:
-#line 564 "c-.y"
+#line 570 "c-.y"
     {
                                (yyval.treeNode) = newExprNode(IdK);
-                               (yyval.treeNode) -> attr.name = (yyvsp[(1) - (4)].token.value.sval);
-                               (yyval.treeNode) -> child[0] = (yyvsp[(3) - (4)].treeNode);
+                               (yyval.treeNode)->attr.name = (yyvsp[(1) - (4)].token).value.sval;
+                               (yyval.treeNode)->child[0] = (yyvsp[(3) - (4)].treeNode);
                             ;}
     break;
 
   case 98:
-#line 571 "c-.y"
+#line 577 "c-.y"
     { (yyval.treeNode) = (yyvsp[(2) - (3)].treeNode); ;}
     break;
 
   case 99:
-#line 572 "c-.y"
+#line 578 "c-.y"
     { (yyval.treeNode) = (yyvsp[(1) - (1)].treeNode); ;}
     break;
 
   case 100:
-#line 573 "c-.y"
+#line 579 "c-.y"
     { (yyval.treeNode) = (yyvsp[(1) - (1)].treeNode); ;}
     break;
 
   case 101:
-#line 576 "c-.y"
+#line 582 "c-.y"
     {
                                (yyval.treeNode) = newExprNode(CallK);
-                               (yyval.treeNode) -> attr.name = (yyvsp[(1) - (4)].token.value.sval);
-                               (yyval.treeNode) -> child[0] = (yyvsp[(3) - (4)].treeNode);
+                               (yyval.treeNode)->attr.name = (yyvsp[(1) - (4)].token).value.sval;
+                               (yyval.treeNode)->child[0] = (yyvsp[(3) - (4)].treeNode);
                             ;}
     break;
 
   case 102:
-#line 583 "c-.y"
+#line 589 "c-.y"
     { (yyval.treeNode) = (yyvsp[(1) - (1)].treeNode); ;}
     break;
 
   case 103:
-#line 584 "c-.y"
+#line 590 "c-.y"
     { (yyval.treeNode) = NULL; ;}
     break;
 
   case 104:
-#line 587 "c-.y"
+#line 593 "c-.y"
     {
                                 TreeNode *trav = (yyvsp[(1) - (3)].treeNode); 
                                 if(trav != NULL) {
-                                    while(trav -> sibling != NULL) trav = trav -> sibling;
-                                    trav -> sibling = (yyvsp[(3) - (3)].treeNode);
+                                    while(trav->sibling != NULL) trav = trav->sibling;
+                                    trav->sibling = (yyvsp[(3) - (3)].treeNode);
                                     (yyval.treeNode) = (yyvsp[(1) - (3)].treeNode);
                                 } else {
                                     (yyval.treeNode) = (yyvsp[(3) - (3)].treeNode);
@@ -2421,49 +2377,50 @@ yyreduce:
     break;
 
   case 105:
-#line 597 "c-.y"
+#line 603 "c-.y"
     { (yyval.treeNode) = (yyvsp[(1) - (1)].treeNode); ;}
     break;
 
   case 106:
-#line 600 "c-.y"
+#line 606 "c-.y"
     {
                                 (yyval.treeNode) = newExprNode(ConstK); 
-                                (yyval.treeNode) -> attr.ivalue = (yyvsp[(1) - (1)].token.value.ival); 
-                                (yyval.treeNode) -> declType = Int;
+                                (yyval.treeNode)->attr.ivalue = (yyvsp[(1) - (1)].token).value.ival; 
+                                (yyval.treeNode)->declType = Int;
                             ;}
     break;
 
   case 107:
-#line 605 "c-.y"
+#line 611 "c-.y"
     { 
                                 (yyval.treeNode) = newExprNode(ConstK); 
-                                (yyval.treeNode) -> attr.cvalue = (yyvsp[(1) - (1)].token.value.cval);
-                                (yyval.treeNode) -> declType = Char;
+                                (yyval.treeNode)->attr.cvalue = (yyvsp[(1) - (1)].token).value.cval;
+                                (yyval.treeNode)->declType = Char;
                             ;}
     break;
 
   case 108:
-#line 610 "c-.y"
+#line 616 "c-.y"
     { 
-                               (yyval.treeNode) = newExprNode(ConstK); 
-                               (yyval.treeNode) -> attr.svalue = (yyvsp[(1) - (1)].token.value.sval); 
-                               (yyval.treeNode) -> declType = String; 
+                                (yyval.treeNode) = newExprNode(ConstK); 
+                                (yyval.treeNode)->attr.svalue = (yyvsp[(1) - (1)].token).value.sval; 
+                                (yyval.treeNode)->declType = Char; 
+                                (yyval.treeNode)->isArray = true;
                             ;}
     break;
 
   case 109:
-#line 615 "c-.y"
+#line 622 "c-.y"
     { 
-                               (yyval.treeNode) = newExprNode(ConstK); 
-                               (yyval.treeNode) -> attr.ivalue = (yyvsp[(1) - (1)].token.value.ival); 
-                               (yyval.treeNode) -> declType = Bool;
+                                (yyval.treeNode) = newExprNode(ConstK); 
+                                (yyval.treeNode)->attr.ivalue = (yyvsp[(1) - (1)].token).value.ival; 
+                                (yyval.treeNode)->declType = Bool;
                             ;}
     break;
 
 
 /* Line 1267 of yacc.c.  */
-#line 2467 "c-.tab.c"
+#line 2424 "c-.tab.c"
       default: break;
     }
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
@@ -2677,12 +2634,14 @@ yyreturn:
 }
 
 
-#line 622 "c-.y"
+#line 629 "c-.y"
 
 int main(int argc, char** argv) {
     // Get cmd line option arguments if they exist
     int opt;
-    while((opt = getopt(argc, argv, "d")) != EOF) {
+    bool print = false;
+    bool printAn = false;
+    while((opt = getopt(argc, argv, "dpP")) != EOF) {
         switch(opt) { //in case we add more options
             default:
                 abort();
@@ -2690,6 +2649,11 @@ int main(int argc, char** argv) {
             case 'd':
                 yydebug = 1;
                 break;
+            case 'p':
+                print = true;
+                break;
+            case 'P':
+                printAn = true;
         }
     }
    
@@ -2709,9 +2673,24 @@ int main(int argc, char** argv) {
         yyparse();
     } while(!feof(yyin));
    
-    printTree(syntaxTree, -1);
-    printf("Number of warnings: %i\n", 0);
-    printf("Number of errors: %i\n", 0);
+    int numerrors = 0;
+    int numwarnings = 0;
+    
+
+    if(print) {
+        printTree(syntaxTree, -1, false);
+    }
+
+    IOLibrary(syntaxTree);
+    semantics(syntaxTree, numerrors, numwarnings);
+
+    if(printAn) {
+        printTree(syntaxTree, -1, true); // print annotated syntax tree
+    }
+
+    printf("Number of warnings: %i\n", numwarnings);
+    printf("Number of errors: %i\n", numerrors);
+    
     return 0;
 }
 

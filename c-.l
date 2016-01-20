@@ -1,10 +1,31 @@
 %{
 // c-.l CS445 Zachary Yama
 
-#include <stdio.h>
-#include "tokenClass.h"
+#include <cstdio>
+#include "token.h"
 #include "util.h"
 #include "c-.tab.h"
+
+// Perform default token assignemnts
+void initialize() {
+    yylval.token.lineno = yylineno;
+    yylval.token.rtxt = strdup(yytext);
+}
+
+void initialize(char* sval) {
+    initialize();
+    yylval.token.value.sval = sval;
+}
+
+void initialize(char cval) {
+    initialize();
+    yylval.token.value.cval = cval;
+}
+
+void initialize(int ival) {
+    initialize();
+    yylval.token.value.ival = ival;
+}
 
 // Take in yytext containing "\0", "\n", "\." and return a string with '\0', '\n', '.'.
 char* escstr(char* str) {
@@ -31,14 +52,16 @@ char* escstr(char* str) {
     return resize;
 }
 
-void charerror(char* str) {
+bool charerror(char* str) {
     int len = strlen(str);
     if(len == 4 && str[1] == '\\') {
         len -= 1;
     }
     if(len - 2 != 1) {
         printf("ERROR(%u): character is %u characters and not a single character: %s\n", yylineno, (unsigned)strlen(str) - 2, str);
+        return false;
     }
+    return true;
 }
 
 %}
@@ -47,54 +70,34 @@ void charerror(char* str) {
 %%
 [ \t\n]                         ;
 (\/\/(.)*\n)                    ;
-['"@#^_~]                       { printf("ERROR(%u): Invalid input character: \"%c\"\n", yylineno, yytext[0]); }
-[0-9]+                          { yylval.token.rtxt = strdup(yytext); yylval.token.value.ival = atoi(yytext); return NUMCONST; }
-'(.)*'                          { charerror(strdup(yytext)); yylval.token.rtxt = strdup(yytext); yylval.token.value.cval = escstr(yytext)[0]; return CHARCONST; }
-\"(.)*\"                        { yylval.token.rtxt = strdup(yytext); yylval.token.value.sval = escstr(yytext); return STRINGCONST; }
-"true"                          { yylval.token.value.ival = 1; yylval.token.rtxt = strdup(yytext); return BOOLCONST; }
-"false"                         { yylval.token.value.ival = 0; yylval.token.rtxt = strdup(yytext); return BOOLCONST; }
-"bool"                          { yylval.token.value.sval = strdup(yytext); return BOOL; }
-"break"                         { yylval.token.value.sval = strdup(yytext); return BREAK; }
-"char"                          { yylval.token.value.sval = strdup(yytext); return CHAR; }
-"else"                          { yylval.token.value.sval = strdup(yytext); return ELSE; }
-"foreach"                       { yylval.token.value.sval = strdup(yytext); return FOREACH; }
-"if"                            { yylval.token.value.sval = strdup(yytext); return IF; }
-"in"                            { yylval.token.value.sval = strdup(yytext); return IN; }
-"int"                           { yylval.token.value.sval = strdup(yytext); return INT; }
-"return"                        { yylval.token.value.sval = strdup(yytext); return RETURN; }
-"static"                        { yylval.token.value.sval = strdup(yytext); return STATIC; }
-"while"                         { yylval.token.value.sval = strdup(yytext); return WHILE; }
-"!="                            { yylval.token.value.sval = strdup(yytext); return NOTEQ; }
-"<="                            { yylval.token.value.sval = strdup(yytext); return LESSEQ; }
-">="                            { yylval.token.value.sval = strdup(yytext); return GRTEQ; }
-"=="                            { yylval.token.value.sval = strdup(yytext); return EQ; }
-"++"                            { yylval.token.value.sval = strdup(yytext); return INC; }
-"--"                            { yylval.token.value.sval = strdup(yytext); return DEC; }
-"+="                            { yylval.token.value.sval = strdup(yytext); return ADDASS; }
-"-="                            { yylval.token.value.sval = strdup(yytext); return SUBASS; }
-"*="                            { yylval.token.value.sval = strdup(yytext); return MULASS; }
-"/="                            { yylval.token.value.sval = strdup(yytext); return DIVASS; }
-"="                             { yylval.token.value.sval = strdup(yytext); return ASSIGN; }
-"<"                             { yylval.token.value.sval = strdup(yytext); return LESS; }
-">"                             { yylval.token.value.sval = strdup(yytext); return GRT; }
-"+"                             { yylval.token.value.sval = strdup(yytext); return ADD; }
-"-"                             { yylval.token.value.sval = strdup(yytext); return SUB; }
-"*"                             { yylval.token.value.sval = strdup(yytext); return MUL; }
-"/"                             { yylval.token.value.sval = strdup(yytext); return DIV; }
-"%"                             { yylval.token.value.sval = strdup(yytext); return MOD; }
-"&"                             { yylval.token.value.sval = strdup(yytext); return AND; }
-"|"                             { yylval.token.value.sval = strdup(yytext); return OR;  }
-"!"                             { yylval.token.value.sval = strdup(yytext); return NOT; }
-"?"                             { yylval.token.value.sval = strdup(yytext); return QUE; }
-"("                             { yylval.token.value.ival = yylineno; return OPAREN; }
-")"                             { yylval.token.value.ival = yylineno; return CPAREN; }
-"{"                             { yylval.token.value.ival = yylineno; return OBRACE; }
-"}"                             { yylval.token.value.ival = yylineno; return CBRACE; }
-"["                             { yylval.token.value.ival = yylineno; return OBRAK; }
-"]"                             { yylval.token.value.ival = yylineno; return CBRAK; }
-";"                             { yylval.token.value.sval = strdup(yytext); return SEMI; }
-":"                             { yylval.token.value.sval = strdup(yytext); return COLON; }
-","                             { yylval.token.value.sval = strdup(yytext); return COMMA; }
-[a-zA-Z]+([0-9]*[a-zA-Z]*)*     { yylval.token.value.sval = strdup(yytext); return ID; }
-.                               { yylval.token.lineno = yylineno; yylval.token.rtxt = strdup(yytext); return yytext[0]; }
+[0-9]+                          { initialize(atoi(yytext)); return NUMCONST; }
+'((\\\')|[^\'\n])*\'            { initialize(escstr(yytext)[0]); if(charerror(strdup(yytext))) return CHARCONST; }
+\"((\\\")|[^\"\n])*\"           { initialize(escstr(yytext)); return STRINGCONST; }
+"true"                          { initialize(1); return BOOLCONST; }
+"false"                         { initialize(0); return BOOLCONST; }
+"bool"                          { initialize(strdup(yytext)); return BOOL; }
+"break"                         { initialize(strdup(yytext)); return BREAK; }
+"char"                          { initialize(strdup(yytext)); return CHAR; }
+"else"                          { initialize(strdup(yytext)); return ELSE; }
+"foreach"                       { initialize(strdup(yytext)); return FOREACH; }
+"if"                            { initialize(strdup(yytext)); return IF; }
+"in"                            { initialize(strdup(yytext)); return IN; }
+"int"                           { initialize(strdup(yytext)); return INT; }
+"return"                        { initialize(strdup(yytext)); return RETURN; }
+"static"                        { initialize(strdup(yytext)); return STATIC; }
+"while"                         { initialize(strdup(yytext)); return WHILE; }
+"!="                            { initialize(strdup(yytext)); return NOTEQ; }
+"<="                            { initialize(strdup(yytext)); return LESSEQ; }
+">="                            { initialize(strdup(yytext)); return GRTEQ; }
+"=="                            { initialize(strdup(yytext)); return EQ; }
+"++"                            { initialize(strdup(yytext)); return INC; }
+"--"                            { initialize(strdup(yytext)); return DEC; }
+"+="                            { initialize(strdup(yytext)); return ADDASS; }
+"-="                            { initialize(strdup(yytext)); return SUBASS; }
+"*="                            { initialize(strdup(yytext)); return MULASS; }
+"/="                            { initialize(strdup(yytext)); return DIVASS; }
+[\=\>\<\+\-\*\/\%\&\|\!\?]      { initialize(yytext[0]); return yytext[0]; }
+[\(\)\{\}\[\]\;\:\,]            { initialize(yytext[0]); return yytext[0]; }
+[a-zA-Z]+[0-9a-zA-Z]*           { initialize(strdup(yytext)); return ID; }
+.                               { printf("ERROR(%u): Invalid input character: \"%c\"\n", yylineno, yytext[0]); }
 %%

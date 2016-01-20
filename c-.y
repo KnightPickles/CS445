@@ -1,20 +1,16 @@
 %{
 // c-.y CS445 Zachary Yama
 
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
 #include <getopt.h>
 #include "util.h"
-#include "tokenClass.h"
+#include "token.h"
+#include "semantics.h"
 #define YYERROR_VERBOSE
 
 extern int yylineno;
 extern int yylex();
 extern FILE *yyin;
 
-static char *assignName;
-static int lineno;
 static TreeNode *syntaxTree;
 
 void yyerror(const char *msg) {
@@ -38,8 +34,8 @@ void charerror(const char *rtxt) {
 %union {
     Token token; 
     TreeNode *treeNode;
-    DeclType integer;
-    char *string;
+    DeclType declType;
+    char *cstring;
 }
 
 %type <treeNode>        program
@@ -94,25 +90,23 @@ void charerror(const char *rtxt) {
                         arg_list
                         constant
 
-%type <string>          unaryop 
-                        relop 
-                        mulop 
-                        sumop
+%type <declType> type_specifier 
 
-%type <integer>         type_specifier 
+%type <token>   unaryop 
+                relop 
+                mulop 
+                sumop
                         
-
-%token <token.value.sval> ID
-%token <token.value.ival> NUMCONST
-%token <token.value.sval> STRINGCONST
-%token <token.value.cval> CHARCONST
-%token <token.value.ival> BOOLCONST
-%token <token.value.sval> OP
-%token <token.value.cval> ERROR 
-%token <token.value.sval> BOOL BREAK CHAR ELSE FOREACH IF IN INT RETURN STATIC WHILE
-%token <token.value.sval> ASSIGN NOTEQ EQ LESSEQ LESS GRTEQ GRT INC DEC ADDASS ADD SUBASS SUB MULASS MUL DIVASS DIV
-%token <token.value.ival> OPAREN CPAREN OBRACE CBRACE OBRAK CBRAK
-%token <token.value.sval> COMMA COLON SEMI MOD QUE AND OR NOT
+%token <token>  ID
+                NUMCONST
+                STRINGCONST
+                CHARCONST
+                BOOLCONST
+                BOOL BREAK CHAR ELSE FOREACH IF IN INT RETURN STATIC WHILE
+                NOTEQ EQ LESSEQ GRTEQ INC DEC ADDASS SUBASS MULASS DIVASS
+                '=' '<' '>' '+' '-' '*' '/'
+                '(' ')' '{' '}' '[' ']'
+                ',' ':' ';' '%' '?' '&' '|' '!'
 %%
 program                 : declaration_list { 
                                 syntaxTree = $1;
@@ -122,8 +116,8 @@ program                 : declaration_list {
 declaration_list        : declaration_list declaration {
                                TreeNode *trav = $1;
                                if(trav != NULL) {
-                                   while (trav -> sibling != NULL) trav = trav -> sibling;
-                                   trav -> sibling = $2;
+                                   while (trav->sibling != NULL) trav = trav->sibling;
+                                   trav->sibling = $2;
                                    $$ = $1;
                                } else {
                                    $$ = $2;
@@ -133,17 +127,17 @@ declaration_list        : declaration_list declaration {
                         ;
 
 declaration             : var_declaration { $$ = $1; }
-                        | fun_declaration { $$ = $1; }//$$ = $1; }
+                        | fun_declaration { $$ = $1; }
                         ;
 
 // Variable Declaration
 
-var_declaration         : type_specifier var_decl_list SEMI {
+var_declaration         : type_specifier var_decl_list ';' {
                                 TreeNode *complete = $2;
                                 if(complete != NULL) {
                                     do {
-                                        complete -> declType = $1;
-                                        complete = complete -> sibling;
+                                        complete->declType = $1;
+                                        complete = complete->sibling;
 
                                     } while(complete != NULL);
                                     $$ = $2;
@@ -153,13 +147,13 @@ var_declaration         : type_specifier var_decl_list SEMI {
                             }
                         ;
 
-scoped_var_declaration  : scoped_type_specifier var_decl_list SEMI {
+scoped_var_declaration  : scoped_type_specifier var_decl_list ';' {
                                 TreeNode *complete = $2;
                                 if(complete != NULL) {
                                     do {
-                                        complete -> declType = $1 -> declType;
-                                        complete -> isStatic = $1 -> isStatic;
-                                        complete = complete -> sibling;
+                                        complete->declType = $1->declType;
+                                        complete->isStatic = $1->isStatic;
+                                        complete = complete->sibling;
                                     } while(complete != NULL); 
                                     $$ = $2;
                                 } else {
@@ -168,11 +162,11 @@ scoped_var_declaration  : scoped_type_specifier var_decl_list SEMI {
                             }
                         ;
 
-var_decl_list           : var_decl_list COMMA var_decl_initialize {
+var_decl_list           : var_decl_list ',' var_decl_initialize {
                                TreeNode *trav = $1;
                                if(trav != NULL) {
-                                    while(trav -> sibling != NULL) trav = trav -> sibling;
-                                    trav -> sibling = $3; 
+                                    while(trav->sibling != NULL) trav = trav->sibling;
+                                    trav->sibling = $3; 
                                     $$ = $1; 
                                 } else {
                                     $$ = $3;
@@ -182,32 +176,34 @@ var_decl_list           : var_decl_list COMMA var_decl_initialize {
                         ;
 
 var_decl_initialize     : var_decl_id { $$ = $1; }
-                        | var_decl_id COLON simple_expression {
-                                $1 -> child[0] = $3; // <- NOT NULL, SHOULD BE $3
+                        | var_decl_id ':' simple_expression {
+                                $1->child[0] = $3; // <- NOT NULL, SHOULD BE $3
                                 $$ = $1;  
                             }
                         ;
 
 var_decl_id             : ID { 
                                 $$ = newDeclNode(VarK);
-                                $$ -> attr.name = $1;
+                                $$->attr.name = $1.value.sval;
+                                $$->lineno = $1.lineno;
                             }
-                        | ID OBRAK NUMCONST CBRAK {
+                        | ID '[' NUMCONST ']' {
                                 $$ = newDeclNode(VarK);
-                                $$ -> attr.name = $1; 
-                                $$ -> isArray = true;
-                                $$ -> arrayLen = $3;
+                                $$->attr.name = $1.value.sval; 
+                                $$->isArray = true;
+                                $$->arrayLen = $3.value.ival;
+                                $$->lineno = $1.lineno;
                             }
                         ;
 
 scoped_type_specifier   : STATIC type_specifier {
                                 $$ = newDeclNode(VarK);
-                                $$ -> isStatic = true;
-                                $$ -> declType = $2;
+                                $$->isStatic = true;
+                                $$->declType = $2;
                             }
                         | type_specifier {
                                 $$ = newDeclNode(VarK);
-                                $$ -> declType = $1;
+                                $$->declType = $1;
                             }
                         ;
 
@@ -217,22 +213,22 @@ type_specifier          : INT { $$ = Int; }
                         ;
 // Function Declaration
 
-fun_declaration         : type_specifier ID OPAREN params CPAREN statement {
+fun_declaration         : type_specifier ID '(' params ')' statement {
                                 $$ = newDeclNode(FuncK);
-                                $$ -> declType = $1;  
-                                $$ -> attr.name = $2;
-                                $$ -> child[0] = $4;
-                                $$ -> child[1] = $6; 
-                                $$ -> lineno = $3; // Allows for correct line no
+                                $$->declType = $1;  
+                                $$->attr.name = $2.value.sval;
+                                $$->child[0] = $4;
+                                $$->child[1] = $6; 
+                                $$->lineno = $3.lineno; // Allows for correct line no
                             }
 
-                        | ID OPAREN params CPAREN statement {
+                        | ID '(' params ')' statement {
                                $$ = newDeclNode(FuncK);
-                               $$ -> declType = Void;
-                               $$ -> attr.name = $1;
-                               $$ -> child[0] = $3;
-                               $$ -> child[1] = $5; 
-                               $$ -> lineno = $2;
+                               $$->declType = Void;
+                               $$->attr.name = $1.value.sval;
+                               $$->child[0] = $3;
+                               $$->child[1] = $5; 
+                               $$->lineno = $2.lineno;
                             }
                         ;
 
@@ -240,11 +236,11 @@ params                  : param_list { $$ = $1; }
                         | { $$ = NULL; }
                         ;
 
-param_list              : param_list SEMI param_type_list {
+param_list              : param_list ';' param_type_list {
                                 TreeNode *trav = $1;
                                 if(trav != NULL) {
-                                    while(trav -> sibling != NULL) trav = trav -> sibling;
-                                    trav -> sibling = $3;
+                                    while(trav->sibling != NULL) trav = trav->sibling;
+                                    trav->sibling = $3;
                                     $$ = $1;
                                 } else {
                                     $$ = $3; 
@@ -257,8 +253,8 @@ param_type_list         : type_specifier param_id_list {
                                 TreeNode *complete = $2;
                                 if(complete != NULL) {
                                     do {
-                                        complete -> declType = $1;
-                                        complete = complete -> sibling;
+                                        complete->declType = $1;
+                                        complete = complete->sibling;
                                     } while(complete != NULL);
                                     $$ = $2;
                                 } else {
@@ -267,11 +263,11 @@ param_type_list         : type_specifier param_id_list {
                             }
                         ;
 
-param_id_list           : param_id_list COMMA param_id {
+param_id_list           : param_id_list ',' param_id {
                                TreeNode *trav = $1; 
                                if(trav != NULL) {
-                                   while(trav -> sibling != NULL) trav = trav -> sibling;
-                                   trav -> sibling = $3;
+                                   while(trav->sibling != NULL) trav = trav->sibling;
+                                   trav->sibling = $3;
                                    $$ = $1;
                                } else { 
                                    $$ = $3;
@@ -282,12 +278,12 @@ param_id_list           : param_id_list COMMA param_id {
 
 param_id                : ID { 
                                $$ = newDeclNode(ParamK);
-                               $$ -> attr.name = $1;
+                               $$->attr.name = $1.value.sval;
                             }
-                        | ID OBRAK CBRAK {
+                        | ID '[' ']' {
                                $$ = newDeclNode(ParamK);
-                               $$ -> attr.name = $1;
-                               $$ -> isArray = true;
+                               $$->attr.name = $1.value.sval;
+                               $$->isArray = true;
                             }
                         ;
 
@@ -309,19 +305,19 @@ unmatched               : unmatched_selection { $$ = $1; }
                         | unmatched_iteration { $$ = $1; }
                         ;
 
-compound_stmt           : OBRACE local_declarations statement_list CBRACE {
+compound_stmt           : '{' local_declarations statement_list '}' {
                                $$ = newStmtNode(CompK); 
-                               $$ -> child[0] = $2;
-                               $$ -> child[1] = $3; 
-                               $$ -> lineno = $1;
+                               $$->child[0] = $2;
+                               $$->child[1] = $3; 
+                               $$->lineno = $1.lineno;
                             }
                         ;
 
 local_declarations      : local_declarations scoped_var_declaration {
                                 TreeNode *trav = $1; 
                                 if(trav != NULL) {
-                                    while(trav -> sibling != NULL) trav = trav -> sibling;
-                                    trav -> sibling = $2;
+                                    while(trav->sibling != NULL) trav = trav->sibling;
+                                    trav->sibling = $2;
                                     $$ = $1;
                                 } else {
                                     $$ = $2; 
@@ -333,8 +329,8 @@ local_declarations      : local_declarations scoped_var_declaration {
 statement_list          : statement_list statement {
                                 TreeNode *trav = $1; 
                                 if(trav != NULL) {
-                                    while(trav -> sibling != NULL) trav = trav -> sibling;
-                                    trav -> sibling = $2;
+                                    while(trav->sibling != NULL) trav = trav->sibling;
+                                    trav->sibling = $2;
                                     $$ = $1;
                                 } else {
                                     $$ = $2;
@@ -343,171 +339,180 @@ statement_list          : statement_list statement {
                         | { $$ = NULL; }
                         ;
 
-expression_stmt         : expression SEMI { $$ = $1; }
-                        | SEMI { $$ = NULL; }
+expression_stmt         : expression ';' { $$ = $1; }
+                        | ';' { $$ = NULL; }
                         ;
 
-matched_selection       : IF OPAREN simple_expression CPAREN matched ELSE matched {
+matched_selection       : IF '(' simple_expression ')' matched ELSE matched {
                                 $$ = newStmtNode(IfK);
-                                $$ -> attr.name = $1;
-                                $$ -> child[0] = $3;
-                                $$ -> child[1] = $5;
-                                $$ -> child[2] = $7;
-                                $$ -> lineno = $2;
+                                $$->attr.name = $1.rtxt;
+                                $$->child[0] = $3;
+                                $$->child[1] = $5;
+                                $$->child[2] = $7;
+                                $$->lineno = $1.lineno;
                             }
                         ;
 
-unmatched_selection     : IF OPAREN simple_expression CPAREN matched ELSE unmatched {
+unmatched_selection     : IF '(' simple_expression ')' matched ELSE unmatched {
                                 $$ = newStmtNode(IfK);
-                                $$ -> attr.name = $1;
-                                $$ -> child[0] = $3;
-                                $$ -> child[1] = $5;
-                                $$ -> child[2] = $7;
-                                $$ -> lineno = $2;
+                                $$->attr.name = $1.rtxt;
+                                $$->child[0] = $3;
+                                $$->child[1] = $5;
+                                $$->child[2] = $7;
+                                $$->lineno = $1.lineno;
                             }
-                        | IF OPAREN simple_expression CPAREN statement {
+                        | IF '(' simple_expression ')' statement {
                                 $$ = newStmtNode(IfK);
-                                $$ -> attr.name = $1;
-                                $$ -> child[0] = $3;
-                                $$ -> child[1] = $5;
-                                $$ -> lineno = $2;
+                                $$->attr.name = $1.rtxt;
+                                $$->child[0] = $3;
+                                $$->child[1] = $5;
+                                $$->lineno = $1.lineno;
                             }
                         ;
 
-matched_iteration       : WHILE OPAREN simple_expression CPAREN matched {
+matched_iteration       : WHILE '(' simple_expression ')' matched {
                                 $$ = newStmtNode(WhileK);
-                                $$ -> attr.name = $1;
-                                $$ -> child[0] = $3;
-                                $$ -> child[1] = $5;
-                                $$ -> lineno = $2;
+                                $$->attr.name = $1.rtxt;
+                                $$->child[0] = $3;
+                                $$->child[1] = $5;
+                                $$->lineno = $1.lineno;
                             }
-                        | FOREACH OPAREN mutable IN simple_expression CPAREN matched {
+                        | FOREACH '(' mutable IN simple_expression ')' matched {
                                 $$ = newStmtNode(ForK);
-                                $$ -> attr.name = $1;
-                                $$ -> child[0] = $3;
-                                $$ -> child[1] = $5;
-                                $$ -> child[2] = $7;
-                                $$ -> lineno = $2;
+                                $$->attr.name = $1.rtxt;
+                                $$->child[0] = $3;
+                                $$->child[1] = $5;
+                                $$->child[2] = $7;
+                                $$->lineno = $1.lineno;
                             }
                         ;
 
-unmatched_iteration     : WHILE OPAREN simple_expression CPAREN unmatched {
+unmatched_iteration     : WHILE '(' simple_expression ')' unmatched {
                                 $$ = newStmtNode(WhileK);
-                                $$ -> attr.name = $1;
-                                $$ -> child[0] = $3;
-                                $$ -> child[1] = $5;
-                                $$ -> lineno = $2;
+                                $$->attr.name = $1.rtxt;
+                                $$->child[0] = $3;
+                                $$->child[1] = $5;
+                                $$->lineno = $1.lineno;
                             }
-                        | FOREACH OPAREN mutable IN simple_expression CPAREN unmatched {
+                        | FOREACH '(' mutable IN simple_expression ')' unmatched {
                                 $$ = newStmtNode(ForK);
-                                $$ -> attr.name = $1;
-                                $$ -> child[0] = $3; 
-                                $$ -> child[1] = $5;
-                                $$ -> child[2] = $7;
-                                $$ -> lineno = $2;
+                                $$->attr.name = $1.rtxt;
+                                $$->child[0] = $3; 
+                                $$->child[1] = $5;
+                                $$->child[2] = $7;
+                                $$->lineno = $1.lineno;
                             }
                         ;
 
-return_stmt             : RETURN SEMI { 
+return_stmt             : RETURN ';' { 
                                 $$ = newStmtNode(ReturnK);
-                                $$ -> attr.name = $1;
+                                $$->attr.name = $1.rtxt;
+                                $$->lineno = $1.lineno;
                             }
-                        | RETURN expression SEMI {
+                        | RETURN expression ';' {
                                 $$ = newStmtNode(ReturnK);
-                                $$ -> attr.name = $1;
-                                $$ -> child[0] = $2;
+                                $$->attr.name = $1.rtxt;
+                                $$->child[0] = $2;
+                                $$->lineno = $1.lineno;
                             }
                         ;
 
-break_stmt              : BREAK SEMI { 
+break_stmt              : BREAK ';' { 
                                 $$ = newStmtNode(BreakK);
-                                $$ -> attr.name = $1;
+                                $$->attr.name = $1.rtxt;
                             }
                         ;
 
 // Expression
 
-expression              : mutable ASSIGN expression {
+expression              : mutable '=' expression {
                                 $$ = newExprNode(AssignK);
-                                $$ -> attr.name = $2;
-                                $$ -> child[0] = $1;
-                                $$ -> child[1] = $3;
+                                $$->attr.name = $2.rtxt;
+                                $$->child[0] = $1;
+                                $$->child[1] = $3;
+                                $$->lineno = $2.lineno;
                             }
                         | mutable ADDASS expression {
                                 $$ = newExprNode(AssignK);
-                                $$ -> attr.name = $2;
-                                $$ -> child[0] = $1;
-                                $$ -> child[1] = $3;
+                                $$->attr.name = $2.rtxt;
+                                $$->child[0] = $1;
+                                $$->child[1] = $3;
+                                $$->lineno = $2.lineno;
                             }
                         | mutable SUBASS expression {
                                 $$ = newExprNode(AssignK);
-                                $$ -> attr.name = $2;
-                                $$ -> child[0] = $1;
-                                $$ -> child[1] = $3;
+                                $$->attr.name = $2.rtxt;
+                                $$->child[0] = $1;
+                                $$->child[1] = $3;
+                                $$->lineno = $2.lineno;
                             }
                         | mutable MULASS expression {
                                 $$ = newExprNode(AssignK);
-                                $$ -> attr.name = $2;
-                                $$ -> child[0] = $1;
-                                $$ -> child[1] = $3;
+                                $$->attr.name = $2.rtxt;
+                                $$->child[0] = $1;
+                                $$->child[1] = $3;
+                                $$->lineno = $2.lineno;
                             }
                         | mutable DIVASS expression { 
                                 $$ = newExprNode(AssignK);
-                                $$ -> attr.name = $2;
-                                $$ -> child[0] = $1;
-                                $$ -> child[1] = $3;
+                                $$->attr.name = $2.rtxt;
+                                $$->child[0] = $1;
+                                $$->child[1] = $3;
+                                $$->lineno = $2.lineno;
                             }
                         | mutable INC {
                                 $$ = newExprNode(AssignK);
-                                $$ -> attr.name = $2;
-                                $$ -> child[0] = $1;
+                                $$->attr.name = $2.rtxt;
+                                $$->child[0] = $1;
+                                $$->lineno = $2.lineno;
                             }
                         | mutable DEC {
                                 $$ = newExprNode(AssignK);
-                                $$ -> attr.name = $2;
-                                $$ -> child[0] = $1;
+                                $$->attr.name = $2.rtxt;
+                                $$->child[0] = $1;
+                                $$->lineno = $2.lineno;
                             }
                         | simple_expression { $$ = $1; } 
                         ;
 
-simple_expression       : simple_expression OR and_expression {
+simple_expression       : simple_expression '|' and_expression {
                                 $$ = newExprNode(OpK);
-                                $$ -> attr.name = $2;
-                                $$ -> child[0] = $1;
-                                $$ -> child[1] = $3;
+                                $$->attr.name = $2.rtxt;
+                                $$->child[0] = $1;
+                                $$->child[1] = $3;
                             }
                         | and_expression { $$ = $1; }
                         ;
 
-and_expression          : and_expression AND unary_rel_expression {
+and_expression          : and_expression '&' unary_rel_expression {
                                 $$ = newExprNode(OpK);
-                                $$ -> attr.name = $2;
-                                $$ -> child[0] = $1;
-                                $$ -> child[1] = $3; 
+                                $$->attr.name = $2.rtxt;
+                                $$->child[0] = $1;
+                                $$->child[1] = $3; 
                             }
                         | unary_rel_expression { $$ = $1; }
                         ;
 
-unary_rel_expression    : NOT unary_rel_expression {
+unary_rel_expression    : '!' unary_rel_expression {
                                 $$ = newExprNode(OpK);
-                                $$ -> attr.name = $1;
-                                $$ -> child[0] = $2;
+                                $$->attr.name = $1.rtxt;
+                                $$->child[0] = $2;
                             }
                         | rel_expression { $$ = $1; }
                         ;
 
 rel_expression          : sum_expression relop sum_expression {
                                $$ = newExprNode(OpK);
-                               $$ -> attr.name = $2;
-                               $$ -> child[0] = $1;
-                               $$ -> child[1] = $3;
+                               $$->attr.name = $2.rtxt;
+                               $$->child[0] = $1;
+                               $$->child[1] = $3;
                             }
                         | sum_expression { $$ = $1; }
                         ;
 
 relop                   : LESSEQ { $$ = $1; }
-                        | LESS { $$ = $1; }
-                        | GRT { $$ = $1; }
+                        | '<' { $$ = $1; }
+                        | '>' { $$ = $1; }
                         | GRTEQ { $$ = $1; }
                         | EQ { $$ = $1; }
                         | NOTEQ { $$ = $1; }
@@ -515,42 +520,43 @@ relop                   : LESSEQ { $$ = $1; }
 
 sum_expression          : sum_expression sumop term {
                                 $$ = newExprNode(OpK);
-                                $$ -> attr.name = $2;
-                                $$ -> child[0] = $1;
-                                $$ -> child[1] = $3;
+                                $$->attr.name = $2.rtxt;
+                                $$->child[0] = $1;
+                                $$->child[1] = $3;
                             }
                         | term { $$ = $1; }
                         ;
 
-sumop                   : ADD { $$ = $1; }
-                        | SUB { $$ = $1; }
+sumop                   : '+' { $$ = $1; }
+                        | '-' { $$ = $1; }
                         ;
 
 term                    : term mulop unary_expression {
                                 $$ = newExprNode(OpK);
-                                $$ -> attr.name = $2;
-                                $$ -> child[0] = $1;
-                                $$ -> child[1] = $3;
+                                $$->attr.name = $2.rtxt;
+                                $$->child[0] = $1;
+                                $$->child[1] = $3;
+                                $$->lineno = $2.lineno;
                             }
                         | unary_expression { $$ = $1; }
                         ;
 
-mulop                   : MUL { $$ = $1; } 
-                        | DIV { $$ = $1; }
-                        | MOD { $$ = $1; }
+mulop                   : '*' { $$ = $1; } 
+                        | '/' { $$ = $1; }
+                        | '%' { $$ = $1; }
                         ;
 
 unary_expression        : unaryop unary_expression {
                                 $$ = newExprNode(OpK);
-                                $$ -> attr.name = $1;
-                                $$ -> child[0] = $2;
+                                $$->attr.name = $1.rtxt;
+                                $$->child[0] = $2;
                             }
                         | factor { $$ = $1; }
                         ;
 
-unaryop                 : SUB { $$ = $1; }
-                        | MUL { $$ = $1; }
-                        | QUE { $$ = $1; }
+unaryop                 : '-' { $$ = $1; }
+                        | '*' { $$ = $1; }
+                        | '?' { $$ = $1; }
                         ;
 
 factor                  : immutable { $$ = $1; } 
@@ -559,24 +565,24 @@ factor                  : immutable { $$ = $1; }
 
 mutable                 : ID {
                                $$ = newExprNode(IdK); 
-                               $$ -> attr.name = $1;
+                               $$->attr.name = $1.value.sval;
                             } 
-                        | ID OBRAK expression CBRAK {
+                        | ID '[' expression ']' {
                                $$ = newExprNode(IdK);
-                               $$ -> attr.name = $1;
-                               $$ -> child[0] = $3;
+                               $$->attr.name = $1.value.sval;
+                               $$->child[0] = $3;
                             }
                         ;
         
-immutable               : OPAREN expression CPAREN { $$ = $2; }
+immutable               : '(' expression ')' { $$ = $2; }
                         | call { $$ = $1; }
                         | constant { $$ = $1; }
                         ;
 
-call                    : ID OPAREN args CPAREN {
+call                    : ID '(' args ')' {
                                $$ = newExprNode(CallK);
-                               $$ -> attr.name = $1;
-                               $$ -> child[0] = $3;
+                               $$->attr.name = $1.value.sval;
+                               $$->child[0] = $3;
                             }
                         ;
 
@@ -584,11 +590,11 @@ args                    : arg_list { $$ = $1; }
                         | { $$ = NULL; }
                         ;
 
-arg_list                : arg_list COMMA expression {
+arg_list                : arg_list ',' expression {
                                 TreeNode *trav = $1; 
                                 if(trav != NULL) {
-                                    while(trav -> sibling != NULL) trav = trav -> sibling;
-                                    trav -> sibling = $3;
+                                    while(trav->sibling != NULL) trav = trav->sibling;
+                                    trav->sibling = $3;
                                     $$ = $1;
                                 } else {
                                     $$ = $3;
@@ -599,23 +605,24 @@ arg_list                : arg_list COMMA expression {
 
 constant                : NUMCONST {
                                 $$ = newExprNode(ConstK); 
-                                $$ -> attr.ivalue = $1; 
-                                $$ -> declType = Int;
+                                $$->attr.ivalue = $1.value.ival; 
+                                $$->declType = Int;
                             }
                         | CHARCONST { 
                                 $$ = newExprNode(ConstK); 
-                                $$ -> attr.cvalue = $1;
-                                $$ -> declType = Char;
+                                $$->attr.cvalue = $1.value.cval;
+                                $$->declType = Char;
                             }
                         | STRINGCONST { 
-                               $$ = newExprNode(ConstK); 
-                               $$ -> attr.svalue = $1; 
-                               $$ -> declType = String; 
+                                $$ = newExprNode(ConstK); 
+                                $$->attr.svalue = $1.value.sval; 
+                                $$->declType = Char; 
+                                $$->isArray = true;
                             }
                         | BOOLCONST { 
-                               $$ = newExprNode(ConstK); 
-                               $$ -> attr.ivalue = $1; 
-                               $$ -> declType = Bool;
+                                $$ = newExprNode(ConstK); 
+                                $$->attr.ivalue = $1.value.ival; 
+                                $$->declType = Bool;
                             }
                         ;
 
@@ -623,7 +630,9 @@ constant                : NUMCONST {
 int main(int argc, char** argv) {
     // Get cmd line option arguments if they exist
     int opt;
-    while((opt = getopt(argc, argv, "d")) != EOF) {
+    bool print = false;
+    bool printAn = false;
+    while((opt = getopt(argc, argv, "dpP")) != EOF) {
         switch(opt) { //in case we add more options
             default:
                 abort();
@@ -631,6 +640,11 @@ int main(int argc, char** argv) {
             case 'd':
                 yydebug = 1;
                 break;
+            case 'p':
+                print = true;
+                break;
+            case 'P':
+                printAn = true;
         }
     }
    
@@ -650,8 +664,23 @@ int main(int argc, char** argv) {
         yyparse();
     } while(!feof(yyin));
    
-    printTree(syntaxTree, -1);
-    printf("Number of warnings: %i\n", 0);
-    printf("Number of errors: %i\n", 0);
+    int numerrors = 0;
+    int numwarnings = 0;
+    
+
+    if(print) {
+        printTree(syntaxTree, -1, false);
+    }
+
+    IOLibrary(syntaxTree);
+    semantics(syntaxTree, numerrors, numwarnings);
+
+    if(printAn) {
+        printTree(syntaxTree, -1, true); // print annotated syntax tree
+    }
+
+    printf("Number of warnings: %i\n", numwarnings);
+    printf("Number of errors: %i\n", numerrors);
+    
     return 0;
 }

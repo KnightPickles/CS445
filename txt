@@ -1,2 +1,17 @@
-int i;
-*y;
+int main;
+int pie;
+char tacos;
+bool burritos;
+
+int frank(char d) {
+    *y;
+    char z;
+    bool b;
+    char tacos;
+    int d;
+    {
+        int r;
+        int z;
+        int pie;
+    }
+}

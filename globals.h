@@ -6,7 +6,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <cstring>
 
 #ifndef FALSE
 #define FALSE 0
@@ -24,9 +23,8 @@ typedef int TokenType;
 typedef enum {DeclK, StmtK, ExprK} NodeKind;
 typedef enum {FuncK, VarK, ParamK} DeclKind;
 typedef enum {IfK, ForK, WhileK, CompK, ReturnK, BreakK} StmtKind;
-typedef enum {ConstK, IdK, OpK, AssignK, SimpK, CallK} ExprKind;
-
-typedef enum {Void, Int, Bool, Char, String} DeclType;
+typedef enum {ConstK, IdK, OpK, AssignK, CallK} ExprKind;
+typedef enum {Void, Int, Bool, Char, IntChar, Undefined} DeclType;
 
 #define MAXCHILDREN 3
 
