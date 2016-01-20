@@ -1,12 +1,17 @@
 %{
 // c-.y CS445 Zachary Yama
 
+#include <iostream>
 #include <getopt.h>
+#include <string>
 #include "util.h"
 #include "token.h"
 #include "semantics.h"
+#include "symbolTable.h"
 #include "codegen.h"
 #define YYERROR_VERBOSE
+
+using namespace std;
 
 extern int gOffset;
 extern int numwarnings;
@@ -816,36 +821,45 @@ constant                : NUMCONST {
 %%
 int main(int argc, char** argv) {
     initTokenMaps(); // Used for verbose error checking
-    
+
     // Get cmd line option arguments if they exist
     int opt;
     bool print = false;
     bool printAn = false;
-    bool printAnScoped = false;
-    while((opt = getopt(argc, argv, "dpPS")) != EOF) {
-        switch(opt) { //in case we add more options
-            default:
-                abort();
-                break;
-            case 'd':
-                yydebug = 1;
-                break;
-            case 'p':
-                print = true;
-                break;
-            case 'P':
-                printAn = true;
-            case 'S':
-                printAnScoped = true;
+    char* outfile = NULL;
+    char* infile = NULL;
+    while(optind < argc) {
+        if((opt = getopt(argc, argv, "dpPo:")) != EOF) {
+            switch(opt) { //in case we add more options
+                default:
+                    abort(); break;
+                case 'd':
+                    yydebug = 1;
+                    break;
+                case 'p':
+                    print = true;
+                    break;
+                case 'P':
+                    printAn = true;
+                    break;
+                case 'o':
+                    outfile = optarg; 
+                    break;
+            }
+        } else { // If EOF, we hit an unexpected argument. It's the input file. 
+            infile = argv[optind];
+            optind++;
         }
     }
-   
+
+    //printf("in %s out %s\n", infile, outfile);
+
     // If there's a trailing argument, it must be the filename. 
     if(argc > 1) {
         FILE *iFile;
-        iFile = fopen(argv[1], "r");// ALTERED TO HAVE HARD CODE
+        iFile = fopen(infile, "r");
         if(!iFile) {
-            printf("File not found: %s\n", argv[argc - 1]);
+            printf("File not found: %s\n", infile);
             exit(-1);
         }
         yyin = iFile;
@@ -866,15 +880,33 @@ int main(int argc, char** argv) {
     }
 
     if(numerrors == 0 && numwarnings == 0 && printAn) {
-        printTree(syntaxTree, -1, true, printAnScoped); // print annotated syntax tree
+        printTree(syntaxTree, -1, true, true); // print annotated syntax tree
     }
 
-    if(printAnScoped) printf("Offset for end of global space: %i\n", gOffset);
+    if(printAn) printf("Offset for end of global space: %i\n", gOffset);
     printf("Number of warnings: %i\n", numwarnings);
     printf("Number of errors: %i\n", numerrors);
     
     if(numerrors == 0 && numwarnings == 0) {
-//        generateCode(syntaxTree, argv[argc - 1]);
+        if(outfile == NULL) {
+            // No file argument:
+            string nofilearg = infile;
+            while(nofilearg.find("/", 0) != string::npos) {
+                nofilearg = nofilearg.substr(nofilearg.find("/", 0) + 1, nofilearg.length());
+            }
+            nofilearg = nofilearg.substr(0, nofilearg.length() - 2);
+            nofilearg += "tm";
+            generateCode(syntaxTree, returnSymbolTable(), (char *)nofilearg.c_str(), infile);
+        } else if(strcmp(outfile, "-") == 0) {
+            // Do that one -o - to stdout thing. 
+            generateCode(syntaxTree, returnSymbolTable(), outfile, infile);
+        } else if(outfile != NULL) {
+            //outfile++;
+            string outfiletm = outfile;
+            //outfiletm += ".tm";
+            // We have an output file argument so make the a.out be filename.out from -o filename
+            generateCode(syntaxTree, returnSymbolTable(), (char *)outfiletm.c_str(), infile);
+        }
     }
 
     return 0;

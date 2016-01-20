@@ -8,6 +8,7 @@
 #include "symbolTable.h"
 #include "util.h"
 
+SymbolTable returnSymbolTable();
 void printSemantics();
 void printTable();
 void printError(int code, int lineno, int explineno, char* s1, char* s2, char* s3, double d1);

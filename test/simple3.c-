@@ -1,22 +1,10 @@
-int g[11];
-
-int dog(int cat[])
+fred() 
 {
-   int tmp;
+   int x;
 
-   tmp = cat[9] * 1000;
-   return tmp;   
-}
-
-main() {
-   int x[22], y[33];
-
-   x[9] = 666;
-   g[9] = 777;
-   
-   y[10] = dog(x);
-   y[10] = dog(g);
-   output(y[10]);
+   x = 666;
+   output(x);
    outnl();
 }
 
+main() fred();

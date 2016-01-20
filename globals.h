@@ -55,7 +55,10 @@ typedef struct treeNode {
     int arrayLen;
     // only applies to decl nodes
     bool isGlobal;      // Is this variable declared in local or global space?
+    int staticIndex;
     int memSize;        // How much memory does it take up? i.e. array size
     int memOffset;         // How far is it offest from address 9999 moving towards 0?
+    bool isParam;
+    int emitLoc;
 } TreeNode;
 #endif

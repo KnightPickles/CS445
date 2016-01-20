@@ -30,6 +30,10 @@ SymbolTable symbolTable;
 int gOffset = 0;
 int lOffset = 0;
 
+SymbolTable returnSymbolTable() {
+    return symbolTable;
+}
+
 bool compare(const err& f, const err& s) {
     return f.lineno < s.lineno;
 }
@@ -454,6 +458,10 @@ void processExpr(TreeNode* t, int& nerrors, int& nwarnings) {
                 // Print tree stuff
                 t->declType = found->declType;
                 t->isArray = found->isArray;
+                t->memSize = found->memSize;
+                t->memOffset = found->memOffset;
+                t->isGlobal = found->isGlobal;
+                t->isStatic = found->isStatic;
 
                 // Can't use a function as a simple expression. 
                 if(found->kind.decl == FuncK) { printError(18, t->lineno, 0, t->attr.name, NULL, NULL, 0); break; }
@@ -480,6 +488,11 @@ void processExpr(TreeNode* t, int& nerrors, int& nwarnings) {
             } else {
                 // Print tree stuff
                 t->declType = found->declType;
+                t->memSize = found->memSize;
+                t->memOffset = found->memOffset;
+                t->isArray = t->isArray;
+                t->isStatic = t->isStatic;
+                t->isGlobal = t->isGlobal;
 
                 // t is a simple variable and cannot be used as a call
                 if(found->kind.decl != FuncK) printError(17, t->lineno, 0, t->attr.name, NULL, NULL, 0);
@@ -491,6 +504,7 @@ void processExpr(TreeNode* t, int& nerrors, int& nwarnings) {
                 int index = 1;
                 // What if there are more call params than necessary?
                 while(declParams != NULL && callParams != NULL) {
+                    callParams->isParam = true; 
                     if(callParams->kind.expr == IdK && callParams->declType == Void) {
                         callParams = callParams->sibling;
                         declParams = declParams->sibling;
