@@ -3365,7 +3365,7 @@ int main(int argc, char** argv) {
     printf("Number of warnings: %i\n", numwarnings);
     printf("Number of errors: %i\n", numerrors);
     
-    if(numerrors == 0 && numwarnings == 0) {
+    if(numerrors == 0) {
         if(outfile == NULL) {
             // No file argument:
             string nofilearg = infile;

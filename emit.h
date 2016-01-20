@@ -30,6 +30,7 @@ enum inst {HALT,NOP,IN,OUT,INB,OUTB,INC,OUTC,OUTNL,ADD,SUB,MUL,DIV,AND,OR,XOR,NO
 //  The following functions were borrowed from Tiny compiler code generator
 int emitSkip(int howMany); //this one
 void emitBackup(int loc);
+void emitRestore();
 
 void emitComment(string c); //this one
 void emitComment(char *c, char *cc);

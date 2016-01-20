@@ -17,14 +17,18 @@ extern int lOffset;
 
 FILE* code;
 SymbolTable table;
-bool isReturn = false;
-bool isLHS = true;
+bool doInit = false;
 bool doStore = false;
+bool opLoad = false;
+bool opStore = false;
+inst opCode;
+bool unary = false;
 int staticCounter = 1;
 int compSize = 0;
 int parCounter = 0;
-int compC = 2;
 int tempIndex = 0;
+int breakLoc = 0;
+string opName;
 
 void generateCode(TreeNode* tree, SymbolTable st, char* outfile, char* infile) {
     table = st;
@@ -141,25 +145,38 @@ void emitDecl(TreeNode* t) {
             break;
         case VarK:
             name = t->attr.name;
-            if(!t->isGlobal && !t->isStatic) {
+            doStore = false;
+
+            // doInit is an initializer override that only allows init of globals and statics
+            if((!t->isStatic && !t->isGlobal) || ((t->isStatic || t->isGlobal) && doInit)) {
                 if(t->isArray) {
                     emit(LDC, AC, t->memSize - 1, 6, "load size of array " + name);
                     emit(ST, AC, t->memOffset + 1, FP, "save size of array " + name);
                 } else {
                     // if init'd variable decl
                     if(t->child[0] != NULL) {
-                        emitConstant(t->child[0]);
+                        emitBegin(t->child[0]);
                         emit(ST, AC, t->memOffset, FP, "Store variable " + name);
                     }
                 }
             }
             break;
         case FuncK:
+            // Set tempIndex based on params if there is no defined compK child
+            TreeNode* sibCnt = t->child[0];
+            int n;
+            if(sibCnt != NULL) {
+                for(n = 0; sibCnt != NULL; n++) sibCnt = sibCnt->sibling;
+                if(!(t->child[1]->nodekind == StmtK && t->child[1]->kind.stmt == CompK)) {
+                    tempIndex -= n + 2;
+                }
+            }
+
             t->emitLoc = emitSkip(0) - 1; // allows function tracking for calls
 
             emitComment("FUNCTION " + name);
             emit(ST, AC, -1, FP, "Store return address. ");
-            
+
             for(int i = 0; i < 3; i++) emitBegin(t->child[i]);
 
             // Add return in case there isn't one
@@ -170,14 +187,18 @@ void emitDecl(TreeNode* t) {
             emit(LDA, PC, 0, AC, "Return "); 
 
             emitComment("END FUNCTION " + name);
+            tempIndex = 0;
             break;
     }
 }
 
 // Array size is 1 when the array is a 
 void emitExpr(TreeNode* t) {
-    string name;
+    string name = (t->kind.expr != ConstK) ? t->attr.name : "";
+    inst OP;
     inst load = LDA;
+    int tempRest = 0;
+    int PTR;
     TreeNode* LHS = t->child[0];
     TreeNode* RHS = t->child[1];
 
@@ -188,119 +209,274 @@ void emitExpr(TreeNode* t) {
     }
     
     switch(t->kind.expr) {
-        case AssignK: 
+        case AssignK:
             emitComment("EXPRESSION");
+            opName = name;
+            if("+=" == name) { // Emit necessary instructions to do an op assign
+                opCode = ADD;
+            } else if("-=" == name) {
+                opCode = SUB;
+            } else if("/=" == name) {
+                opCode = DIV;
+            } else if("*=" == name) {
+                opCode = MUL;
+            } else if("++" == name) {
+                opCode = LDA;
+            } else if("--" == name) {
+                opCode = LDA;
+            }
+                
+            opStore = false;
+            doStore = false;
+            unary = false;
+            opLoad = false;
 
-            if(!LHS->isArray) {
-                doStore = false;
-                emitBegin(RHS);
-                doStore = true;
-                emitBegin(LHS);
-            } else {
+            if(LHS->isArray) {
                 doStore = false;
                 if(LHS->child[0] != NULL) {
                     emitBegin(LHS->child[0]);
-                    emit(ST, AC, compSize, FP, "Save index ");
-                }
-                doStore = false;
-                emitBegin(RHS);
+                    emit(ST, AC, compSize + tempIndex, FP, "Save index ");
+                    tempIndex--;
+                } 
+            }
+            opName = name;
+
+            opStore = opLoad = doStore = unary = false;
+            emitBegin(RHS);
+            opName = name;
+
+            if(name == "=") {
                 doStore = true;
+                opStore = false;
+                emitBegin(LHS);
+            } else {
+                if(name == "--" || name == "++") {
+                    unary = true;
+                } else unary = false;
+                doStore = opStore = opLoad = true;
                 emitBegin(LHS);
             }
+            opStore = false;
+            opName = name;
+            if(LHS->isArray && LHS->child[0] != NULL) tempIndex++;
             break;
         case OpK:
-            for(int i = 0; i < 3; i++) emitBegin(t->child[i]);
-            if(strcmp(t->attr.name, "*") == 0) {
-                if(t->child[0]->memSize == 1) load = LD;
-                emit(LD, AC, 1, AC, "Load array size ");
+            doStore = false;
+            load = LDA;
+            if(LHS->isArray) load = LD;
+            if(t->isStatic || t->isGlobal) PTR = GP;
+            else PTR = FP;
+
+            // Unary Ops
+            if(RHS == NULL) {
+                emitBegin(t->child[0]);
+                if("*" == name) {
+                    if(LHS->memSize == 1) load = LD;
+                    emit(LD, AC, 1, AC, "Load array size ");
+                } else if("?" == name) {
+                    emit(RND, AC, AC, 6, "Op ? ");
+                } else if("!" == name) {
+                    emit(LDC, AC1, 1, 6, "Load 1 ");
+                    emit(XOR, AC, AC, AC1, "Op NOT ");
+                } else if("-" == name) {
+                    emit(LDC, AC1, 0, 6, "Load 0 ");
+                    emit(SUB, AC, AC1, AC, "Op unary - ");
+                }
+            } else { // Binary Ops
+                emitBegin(t->child[0]);
+                tempRest = tempIndex; // Save current viable temporary index  
+                tempIndex--; // Increment past the index we plan to use
+                emit(ST, 3, compSize + tempRest - parCounter, FP, "Save left side ");
+                emitBegin(t->child[1]);
+                emit(LD, AC1, compSize + tempRest - parCounter, FP, "Load left into ac1 ");
+                tempIndex++; // Incrementation no longer needed
+                if(">" == name) {
+                    emit(TGT, AC, AC1, AC, "Op > ");
+                } else if(">=" == name) {
+                    emit(TGE, AC, AC1, AC, "Op >= ");
+                } else if("<" == name) {
+                    emit(TLT, AC, AC1, AC, "Op < "); 
+                } else if("<=" == name) {
+                    emit(TLE, AC, AC1, AC, "Op <= ");
+                } else if("==" == name) {
+                    emit(TEQ, AC, AC1, AC, "Op == ");
+                } else if("!=" == name) {
+                    emit(TNE, AC, AC1, AC, "Op != ");
+                } else if("|" == name) {
+                    emit(OR, AC, AC1, AC, "Op OR ");
+                } else if("&" == name) {
+                    emit(AND, AC, AC1, AC, "Op AND ");
+                } else if("+" == name) {
+                    emit(ADD, AC, AC1, AC, "Op + ");
+                } else if("-" == name) {
+                    emit(SUB, AC, AC1, AC, "Op - ");
+                } else if("/" == name) {
+                    emit(DIV, AC, AC1, AC, "Op / "); 
+                } else if("*" == name) {
+                    emit(MUL, AC, AC1, AC, "Op * ");
+                } else if("%" == name) {
+                    emit(DIV, AC2, AC1, AC, "Op % ");
+                    emit(MUL, AC2, AC2, AC, " ");
+                    emit(SUB, AC, AC1, AC2, " ");
+                }
             }
             break;
         case ConstK:
             emitConstant(t);
             break;
         case IdK:
-            name = t->attr.name;
+            PTR = (t->isGlobal || t->isStatic) ? 0 : 1;
             if(t->memSize == 1) load = LD;
             if(!doStore) { // Load 
                 if(t->isArray) {
                     if(t->child[0] != NULL) {
                         emitBegin(t->child[0]);
-                        emit(load, AC1, t->memOffset, t->isStatic ? GP : (t->isGlobal ? GP : FP), "Load address of base of array " + name);
+                        emit(load, AC1, t->memOffset, PTR, "Load address of base of array " + name);
                         emit(SUB, AC, AC1, AC, "Compute offset of value ");
-                        emit(LD, AC, 0, AC, "Load the value ");
+                        emit(LD, opLoad ? (unary ? AC : AC1) : AC, 0, AC, opLoad ? "Load LHS value " : "Load the value ");
                     } else {
-                        emit(load, AC, t->memOffset, t->isStatic ? GP : (t->isGlobal ? GP : FP), "Load address of base of array " + name);
+                        emit(load, opLoad ? (unary ? AC : AC1) : AC, t->memOffset, PTR, opLoad ? "Load LHS address of base of array " : "Load address of base of array " + name);
                     }
                 } else {
-                    emit(LD, AC, t->memOffset, t->isStatic ? GP : (t->isGlobal ? GP : FP), "Load variable " + name);
+                    emit(LD, opLoad ? (unary ? AC : AC1) : AC, t->memOffset, PTR, (opLoad ? "load lhs variable " : "Load variable ") + name);
                 }
             } else { // Store
                 if(t->isArray) {
                     if(t->child[0] != NULL) {
-                        emit(LD, AC1, compSize, FP, "Restore index ");
-                        emit(load, AC2, t->memOffset, t->isStatic ? GP : (t->isGlobal ? GP : FP), "Load address of base of array " + name); 
+                        emit(LD, AC1, compSize + tempIndex + 1, FP, "Restore index ");
+                        emit(load, AC2, t->memOffset, PTR, "Load address of base of array " + name); 
                         emit(SUB, AC2, AC2, AC1, "Compute offset of value ");
+                        if(opStore) { // Crazy array op assign insertion
+                            emit(LD, opLoad ? (unary ? AC : AC1) : AC, 0, AC2, "load lhs variable " + name);
+                            if(opName == "++") {
+                                emit(LDA, AC, 1, AC, "increment value of " + name); 
+                            } else if(opName == "--") {
+                                emit(LDA, AC, -1, AC, "decrement value of " + name); 
+                            } else emit(opCode, AC, AC1, AC, "op " + opName + " ");   
+                        }
                         emit(ST, AC, 0, AC2, "Store variable " + name);
                     } else {
-                        emit(load, AC, t->memOffset, t->isStatic ? GP : (t->isGlobal ? GP : FP), "Load address of base of array [NONINDEX]" + name);
+                        emit(load, AC, t->memOffset, PTR, "Load address of base of array [NONINDEX]" + name);
                     }
                 } else {
-                    emit(ST, AC, t->memOffset, t->isStatic ? GP : (t->isGlobal ? GP : FP), "Store variable " + name);
+                    if(opStore) { // Crazy op assign insertion
+                        emit(LD, opLoad ? (unary ? AC : AC1) : AC, t->memOffset, PTR, "load lhs variable " + name);
+                        if(opName == "++") {
+                            emit(LDA, AC, 1, AC, "increment value of " + name); 
+                        } else if(opName == "--") {
+                            emit(LDA, AC, -1, AC, "decrement value of " + name); 
+                        } else emit(opCode, AC, AC1, AC, "op " + opName + " ");   
+                    }
+                    emit(ST, AC, t->memOffset, PTR, "Store variable " + name);
                 }
             }
             break;
         case CallK:
             TreeNode* found = (TreeNode*)table.lookup(t->attr.name);
-            int comps = compSize;
-            compC-=2;
-            emitComment("EXPRESSION");
-            // do global comp size
-            name = t->attr.name;
-            emitComment("                      Begin call to  " + name);
-            emit(ST, FP, comps + compC, FP, "Store old fp in ghost frame ");
-           
+            tempIndex -= 2; // For some magical reason this happens to the offsets
+            
+            // Temporaries to for use before and after recursion
             parCounter = 0;
             int parc = parCounter;
             bool stb = doStore;
-            doStore = false;
+            int tempI = tempIndex; 
+            int comps = compSize;
+            doStore = opLoad = false;
+
+            // Call Begin
+            emitComment("EXPRESSION");
+            emitComment("                      Begin call to  " + name);
+            emit(ST, FP, comps + tempI + 2, FP, "Store old fp in ghost frame "); 
+            
+            // Recurse
             emitBegin(t->child[0]);
+
+            // Restore temporaries
             doStore = stb;
             parCounter = parc;
             compSize = comps;
 
+            // Call End
             emitComment("                      Jump to " + name);
-            emit(LDA, FP, compSize + compC, FP, "Load address of new frame ");
+            emit(LDA, FP, compSize + tempI + 2, FP, "Load address of new frame ");
             emit(LDA, AC, FP, PC, "Return address in ac ");
             emit(LDA, PC, found->emitLoc - emitSkip(0), PC, "CALL " + name);
             emit(LDA, AC, 0, RT, "Save the result in ac ");
             emitComment("                      End call to " + name);
-            compC+=2;
-
+            
+            // Reset ghost frame index
+            tempIndex += 2;
             break;
     }
 
     if(t->isParam) {
-        emit(ST, AC, compSize - 2 - parCounter + compC, FP, "Store parameter ");
+        emit(ST, AC, compSize - parCounter + tempIndex, FP, "Store parameter ");
         parCounter++;
     }
 }
 
 void emitStmt(TreeNode* t) {
+    int ifSkip, ifLoc, whileSkip, whileLoc, brkLoc;
     switch(t->kind.stmt) {
         case IfK:
-            for(int i = 0; i < 3; i++) emitBegin(t->child[i]);
+            emitComment("IF");
+            doStore = opLoad = false;
+            emitBegin(t->child[0]);
+            ifLoc = emitSkip(1);
+            emitComment("THEN");
+            emitComment("EXPRESSION");
+            emitBegin(t->child[1]);
+            ifSkip = emitSkip(0);
+
+            emitBackup(ifLoc);
+            if(t->child[2] != NULL) ifSkip++;
+            emit(JZR, AC, ifSkip - emitSkip(0) - 1, PC, "Jump around the THEN if false [backpatch] ");
+            emitRestore();
+
+            if(t->child[2] != NULL) {
+                emitComment("ELSE");
+                emitComment("EXPRESSION");
+                ifLoc = emitSkip(1);
+                emitBegin(t->child[2]);
+                ifSkip = emitSkip(0);
+                emitBackup(ifLoc);
+                emit(LDA, PC, ifSkip - emitSkip(0) - 1, PC, "Jump around the ELSE [backpatch] ");
+                emitRestore();
+            }
+
+            emitComment("ENDIF");
             break;
         case WhileK:
-            for(int i = 0; i < 3; i++) emitBegin(t->child[i]);
+            doStore = opLoad = false;
+            whileLoc = emitSkip(0);
+            emitComment("WHILE");
+            emitBegin(t->child[0]);
+            emit(JNZ, AC, 1, PC, "Jump to while part ");
+            whileSkip = emitSkip(1);
+            brkLoc = breakLoc;
+            breakLoc = emitSkip(0); 
+
+            emitComment("DO");
+            emitBegin(t->child[1]);
+            
+            emit(LDA, PC, whileLoc - emitSkip(0) - 1, PC, "go to beginning of loop ");
+            whileLoc = emitSkip(0);
+            emitBackup(whileSkip);
+            emit(LDA, PC, whileLoc - whileSkip - 1, PC, "Jump past loop [backpatch] "); 
+            emitRestore();
+
+            breakLoc = brkLoc;
+            emitComment("ENDWHILE");
             break;
         case ForK:
+            emitComment("FOR");
             for(int i = 0; i < 3; i++) emitBegin(t->child[i]);
+            emitComment("ENDFOR");
             break;
         case ReturnK:
             emitComment("RETURN");
-            isReturn = true;
+            doStore = opLoad = false;
             emitBegin(t->child[0]);
-            isReturn = false;
             if(t->child[0] != NULL) {
                 emit(LDA, RT, 0, AC, "Copy result to rt register ");
             }
@@ -309,7 +485,8 @@ void emitStmt(TreeNode* t) {
             emit(LDA, PC, 0, AC, "Return ");
             break;
         case BreakK:
-            for(int i = 0; i < 3; i++) emitBegin(t->child[i]);
+            emitComment("BREAK");
+            emit(LDA, PC, breakLoc - emitSkip(0) - 2, PC, "break ");
             break;
         case CompK:
             compSize = t->memSize;
@@ -321,8 +498,9 @@ void emitStmt(TreeNode* t) {
 }
 
 void emitGlobalsAndStatics(TreeNode* t) {
+    doInit = true;
+    compSize = -2;
     if(t == NULL) return;
-
     if(t->nodekind == DeclK && t->kind.decl == VarK) {
         if(t->isGlobal || t->isStatic) {
             string name(t->attr.name);
@@ -336,7 +514,7 @@ void emitGlobalsAndStatics(TreeNode* t) {
                 emit(ST, AC, t->memOffset + 1, 0, "save size of array " + name + statstr);
             } else {
                 if(t->child[0] != NULL) {
-                    emitConstant(t->child[0]);
+                    emitBegin(t->child[0]);
                     emit(ST, AC, t->memOffset, GP, "Store variable " + name + statstr);
                 }
             }

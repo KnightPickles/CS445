@@ -21,6 +21,7 @@ extern FILE *code;
 //  TM location number for current instruction emission
 static int emitLoc = 0;
 static int litLoc = 0;
+static int maxLoc = 0;
 string instToStr[] = {"HALT","NOP","IN","OUT","INB","OUTB","INC","OUTC","OUTNL","ADD","SUB","MUL",
     "DIV","AND","OR","XOR","NOT","SWP","RND","LDC","LDA","LD","LDL","LDI","ST","STI","JNZ","JZR",
     "TLT","TLE","TEQ","TNE","TGE","TGT","MOV","SET","CMP","CPI"};
@@ -53,6 +54,7 @@ void emit(inst i, int r, int s, int t, string c) {
     }
     fflush(code);
     emitLoc++;
+    if(emitLoc > maxLoc) maxLoc = emitLoc;
 }
 
 // emitRO emits a register-only TM instruction
@@ -67,6 +69,7 @@ void emitRO(char *op, int r, int s, int t, char *c, char *cc)
     fprintf(code, "%3d:  %5s  %d,%d,%d\t%s %s\n", emitLoc, op, r, s, t, c, cc);
     fflush(code);
     emitLoc++;
+    if(emitLoc > maxLoc) maxLoc = emitLoc;
 }
 
 void emitRO(string op, int r, int s, int t, string c)
@@ -88,6 +91,7 @@ void emitRM(char *op, int r, int d, int s, char *c, char *cc)
     fprintf(code, "%3d:  %5s  %d,%d(%d)\t%s %s\n", emitLoc, op, r, d, s, c, cc);
     fflush(code);
     emitLoc++;
+    if(emitLoc > maxLoc) maxLoc = emitLoc;
 }
 
 void emitRM(string op, int r, int d, int s, string c)
@@ -123,6 +127,7 @@ void emitRMAbs(char *op, int r, int a, char *c, char *cc)
         PC, c, cc);
     fflush(code);
     emitLoc++;
+    if(emitLoc > maxLoc) maxLoc = emitLoc;
 }
 
 
@@ -151,6 +156,7 @@ void emitLit(char *s)
     fprintf(code, "%3d:  %5s  \"%s\"\n", litLoc, (char *)"LIT", s);
     emitRM((char *)"LDC", 3, litLoc, 6, (char *)"Load literal value");
     litLoc++;
+    if(emitLoc > maxLoc) maxLoc = emitLoc;
 }
 
 
@@ -177,6 +183,11 @@ int emitSkip(int howMany)
 void emitBackup(int loc)
 {
     emitLoc = loc;
+}
+
+// skip to latest instruction
+void emitRestore() {
+    emitLoc = maxLoc;
 }
 
 
