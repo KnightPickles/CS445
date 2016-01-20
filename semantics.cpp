@@ -17,7 +17,7 @@ struct err {
 
 vector<err> errorBuffer; 
 char buffer[256]; // Used to store the string on each sprintf call
-int numerrors = 0, numwarnings = 0;
+int nerrors = 0, nwarnings = 0;
 bool enterScope = true;
 bool foundReturn = false;
 bool foundMain = false;
@@ -87,7 +87,7 @@ void IOLibrary(TreeNode *&t) {
 }
 
 void semantics(TreeNode *t, int& errors, int& warnings) {
-    scopeAndType(t, numerrors, numwarnings);
+    scopeAndType(t, nerrors, nwarnings);
     
     // Was main declared?
     TreeNode* main = (TreeNode*)symbolTable.lookup("main");
@@ -96,25 +96,25 @@ void semantics(TreeNode *t, int& errors, int& warnings) {
     }
     //std::sort(errorBuffer.begin(), errorBuffer.end(), compare);
     printErrors();
-    errors = numerrors; 
-    warnings = numwarnings;
+    errors = nerrors; 
+    warnings = nwarnings;
 }
 
 // Semantic analysis of a syntax tree. 
-void scopeAndType(TreeNode *t, int& numerrors, int& numwarnings) {
+void scopeAndType(TreeNode *t, int& nerrors, int& nwarnings) {
     // Break up each node kind for simplicity sake. 
     // Process any children and handle any errors. 
     if(t == NULL) return;
     switch(t->nodekind) {
-        case DeclK: processDecl(t, numerrors, numwarnings); break;
-        case StmtK: processStmt(t, numerrors, numwarnings); break;
-        case ExprK: processExpr(t, numerrors, numwarnings); break;
+        case DeclK: processDecl(t, nerrors, nwarnings); break;
+        case StmtK: processStmt(t, nerrors, nwarnings); break;
+        case ExprK: processExpr(t, nerrors, nwarnings); break;
     }
     // How the recursion happens
-    if(t->sibling != NULL) scopeAndType(t->sibling, numerrors, numwarnings);
+    if(t->sibling != NULL) scopeAndType(t->sibling, nerrors, nwarnings);
 }
 
-void processDecl(TreeNode* t, int& numerrors, int& numwarnings) {
+void processDecl(TreeNode* t, int& nerrors, int& nwarnings) {
     //Find re-declarations. Varkind is special as per its initialization. 
     TreeNode* initializer; 
     if(t->kind.decl != VarK && !symbolTable.insert(t->attr.name,t)) {
@@ -125,7 +125,7 @@ void processDecl(TreeNode* t, int& numerrors, int& numwarnings) {
     switch(t->kind.decl) {
         case ParamK:
             for(int i = 0; i < 3; i++) { 
-                scopeAndType(t->child[i], numerrors, numwarnings); 
+                scopeAndType(t->child[i], nerrors, nwarnings); 
                 // Tree print stuff?
                 //initializer = (TreeNode*)symbolTable.lookup(t->attr.name);
                 //t->declType = initializer->declType;
@@ -134,7 +134,7 @@ void processDecl(TreeNode* t, int& numerrors, int& numwarnings) {
             initializer = NULL; // just being safe
             break;
         case VarK:
-            for(int i = 0; i < 3; i++) { scopeAndType(t->child[i], numerrors, numwarnings); }
+            for(int i = 0; i < 3; i++) { scopeAndType(t->child[i], nerrors, nwarnings); }
             // If we have an initializer
             if(t->child[0] != NULL) {
                 // If we have an ID of some kind, lookup its declaration. 
@@ -181,7 +181,7 @@ void processDecl(TreeNode* t, int& numerrors, int& numwarnings) {
 
             // Process the function's param and statement nodes. 
             for(int i = 0; i < 3; i++) {
-                if(t->child[i] != NULL) scopeAndType(t->child[i], numerrors, numwarnings);
+                if(t->child[i] != NULL) scopeAndType(t->child[i], nerrors, nwarnings);
             }
 
             // Handle return errors
@@ -198,7 +198,7 @@ void processDecl(TreeNode* t, int& numerrors, int& numwarnings) {
     }
 }
 
-void processStmt(TreeNode* t, int& numerrors, int& numwarnings) {
+void processStmt(TreeNode* t, int& nerrors, int& nwarnings) {
     bool c0err, c1err, c2err;
     c0err = c1err = c2err = false;
     // Track whether we're in a loop so we can throw break errors
@@ -209,7 +209,7 @@ void processStmt(TreeNode* t, int& numerrors, int& numwarnings) {
     }
     if(t->kind.stmt != CompK) {
         for(int i = 0; i < 3; i++) { 
-            scopeAndType(t->child[i], numerrors, numwarnings);
+            scopeAndType(t->child[i], nerrors, nwarnings);
             // Do not throw errors if an ID was not declared. 
             if(t->child[i] != NULL && t->child[i]->declType == Void) {
                 // Ignore Voids that apply to function calls
@@ -275,14 +275,14 @@ void processStmt(TreeNode* t, int& numerrors, int& numwarnings) {
                 // "retainScope" to avoid calling ".leave()" twice. 
                 enterScope = true;
             }
-            for(int i = 0; i < 3; i++) scopeAndType(t->child[i], numerrors, numwarnings);
+            for(int i = 0; i < 3; i++) scopeAndType(t->child[i], nerrors, nwarnings);
             // Check if we were a lone compound, and leave the scope if we were. 
             if(retainScope) symbolTable.leave();
             break;
     }
 }
     
-void processExpr(TreeNode* t, int& numerrors, int& numwarnings) {
+void processExpr(TreeNode* t, int& nerrors, int& nwarnings) {
     bool isLStr, isRStr, isBinary, isLHSArray, isRHSArray, isLHSIndexed, isRHSIndexed, throwError;
     isLStr = isRStr = isBinary = isLHSArray = isRHSArray = isLHSIndexed = isRHSIndexed = throwError = false;
 
@@ -301,7 +301,7 @@ void processExpr(TreeNode* t, int& numerrors, int& numwarnings) {
     switch(t->kind.expr) {
         case AssignK:
         case OpK:
-            for(int i = 0; i < 3; i++) { scopeAndType(t->child[i], numerrors, numwarnings); }
+            for(int i = 0; i < 3; i++) { scopeAndType(t->child[i], nerrors, nwarnings); }
             if(t->child[0] != NULL) {
                 lhNode = t->child[0];
                 LHS = lhNode->declType;
@@ -382,7 +382,7 @@ void processExpr(TreeNode* t, int& numerrors, int& numwarnings) {
             } else t->declType = LHS;
             break;
         case ConstK:
-            for(int i = 0; i < 3; i++) { scopeAndType(t->child[i], numerrors, numwarnings); }
+            for(int i = 0; i < 3; i++) { scopeAndType(t->child[i], nerrors, nwarnings); }
             break;
         case IdK:
             found = (TreeNode*)symbolTable.lookup(t->attr.name);
@@ -399,7 +399,7 @@ void processExpr(TreeNode* t, int& numerrors, int& numwarnings) {
 
                 // Array indexing errors
                 if(t->child[0] != NULL) {
-                    scopeAndType(t->child[0], numerrors, numwarnings);
+                    scopeAndType(t->child[0], nerrors, nwarnings);
                     if(t->child[0]->declType == Void && !(t->child[0]->nodekind == ExprK && t->child[0]->kind.expr == CallK)) break; // It was an undefined error
                     if(!t->isArray) { 
                         printError(21, t->lineno, 0, t->attr.name, NULL, NULL, 0); 
@@ -411,7 +411,7 @@ void processExpr(TreeNode* t, int& numerrors, int& numwarnings) {
             }
             break;
         case CallK:
-            for(int i = 0; i < 3; i++) scopeAndType(t->child[i], numerrors, numwarnings);
+            for(int i = 0; i < 3; i++) scopeAndType(t->child[i], nerrors, nwarnings);
             found = (TreeNode*)symbolTable.lookup(t->attr.name);
             // If not found, undeclared error
             if(found == NULL) {
@@ -515,8 +515,8 @@ void printTable() {
 
 void printError(int code, int lineno, int explineno, char* s1, char* s2, char* s3, double d1) {
     if(code == 15) {
-        numwarnings++;
-    } else numerrors++;
+        nwarnings++;
+    } else nerrors++;
     switch(code) {
         // DECLARATIONS
         case 0: sprintf(buffer, "ERROR(%d): Symbol '%s' is already defined at line %d.\n", lineno, s1, explineno); break;

@@ -555,6 +555,9 @@ char *yytext;
 #include "util.h"
 #include "c-.tab.h"
 
+int numerrors = 0;
+int numwarnings = 0;
+
 // Perform default token assignemnts
 void initialize() {
     yylval.token.lineno = yylineno;
@@ -601,19 +604,21 @@ char* escstr(char* str) {
     return resize;
 }
 
+// Returns true if there was a char length error
 bool charerror(char* str) {
     int len = strlen(str);
     if(len == 4 && str[1] == '\\') {
         len -= 1;
     }
     if(len - 2 != 1) {
-        printf("ERROR(%u): character is %u characters and not a single character: %s\n", yylineno, (unsigned)strlen(str) - 2, str);
-        return false;
+        numwarnings++;
+        printf("WARNING(%u): character is %u characters and not a single character: %s\n", yylineno, (unsigned)strlen(str) - 2, str);
+        return true;
     }
-    return true;
+    return false;
 }
 
-#line 617 "lex.yy.c"
+#line 622 "lex.yy.c"
 
 #define INITIAL 0
 
@@ -795,9 +800,9 @@ YY_DECL
 	register char *yy_cp, *yy_bp;
 	register int yy_act;
     
-#line 70 "c-.l"
+#line 75 "c-.l"
 
-#line 801 "lex.yy.c"
+#line 806 "lex.yy.c"
 
 	if ( !(yy_init) )
 		{
@@ -893,171 +898,171 @@ do_action:	/* This label is used only to access EOF actions. */
 case 1:
 /* rule 1 can match eol */
 YY_RULE_SETUP
-#line 71 "c-.l"
+#line 76 "c-.l"
 ;
 	YY_BREAK
 case 2:
 /* rule 2 can match eol */
 YY_RULE_SETUP
-#line 72 "c-.l"
+#line 77 "c-.l"
 ;
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 73 "c-.l"
+#line 78 "c-.l"
 { initialize(atoi(yytext)); return NUMCONST; }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 74 "c-.l"
-{ initialize(escstr(yytext)[0]); if(charerror(strdup(yytext))) return CHARCONST; }
+#line 79 "c-.l"
+{ initialize(escstr(yytext)[0]); charerror(strdup(yytext)); return CHARCONST; }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 75 "c-.l"
+#line 80 "c-.l"
 { initialize(escstr(yytext)); return STRINGCONST; }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 76 "c-.l"
+#line 81 "c-.l"
 { initialize(1); return BOOLCONST; }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 77 "c-.l"
+#line 82 "c-.l"
 { initialize(0); return BOOLCONST; }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 78 "c-.l"
+#line 83 "c-.l"
 { initialize(strdup(yytext)); return BOOL; }
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 79 "c-.l"
+#line 84 "c-.l"
 { initialize(strdup(yytext)); return BREAK; }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 80 "c-.l"
+#line 85 "c-.l"
 { initialize(strdup(yytext)); return CHAR; }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 81 "c-.l"
+#line 86 "c-.l"
 { initialize(strdup(yytext)); return ELSE; }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 82 "c-.l"
+#line 87 "c-.l"
 { initialize(strdup(yytext)); return FOREACH; }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 83 "c-.l"
+#line 88 "c-.l"
 { initialize(strdup(yytext)); return IF; }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 84 "c-.l"
+#line 89 "c-.l"
 { initialize(strdup(yytext)); return IN; }
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 85 "c-.l"
+#line 90 "c-.l"
 { initialize(strdup(yytext)); return INT; }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 86 "c-.l"
+#line 91 "c-.l"
 { initialize(strdup(yytext)); return RETURN; }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 87 "c-.l"
+#line 92 "c-.l"
 { initialize(strdup(yytext)); return STATIC; }
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 88 "c-.l"
+#line 93 "c-.l"
 { initialize(strdup(yytext)); return WHILE; }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 89 "c-.l"
+#line 94 "c-.l"
 { initialize(strdup(yytext)); return NOTEQ; }
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 90 "c-.l"
+#line 95 "c-.l"
 { initialize(strdup(yytext)); return LESSEQ; }
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 91 "c-.l"
+#line 96 "c-.l"
 { initialize(strdup(yytext)); return GRTEQ; }
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 92 "c-.l"
+#line 97 "c-.l"
 { initialize(strdup(yytext)); return EQ; }
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 93 "c-.l"
+#line 98 "c-.l"
 { initialize(strdup(yytext)); return INC; }
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 94 "c-.l"
+#line 99 "c-.l"
 { initialize(strdup(yytext)); return DEC; }
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 95 "c-.l"
+#line 100 "c-.l"
 { initialize(strdup(yytext)); return ADDASS; }
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 96 "c-.l"
+#line 101 "c-.l"
 { initialize(strdup(yytext)); return SUBASS; }
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 97 "c-.l"
+#line 102 "c-.l"
 { initialize(strdup(yytext)); return MULASS; }
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 98 "c-.l"
+#line 103 "c-.l"
 { initialize(strdup(yytext)); return DIVASS; }
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 99 "c-.l"
+#line 104 "c-.l"
 { initialize(yytext[0]); return yytext[0]; }
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 100 "c-.l"
+#line 105 "c-.l"
 { initialize(yytext[0]); return yytext[0]; }
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 101 "c-.l"
+#line 106 "c-.l"
 { initialize(strdup(yytext)); return ID; }
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 102 "c-.l"
-{ printf("ERROR(%u): Invalid input character: \"%c\"\n", yylineno, yytext[0]); }
+#line 107 "c-.l"
+{ numwarnings++; printf("WARNING(%u): Invalid input character: \'%c\'. Character ignored.\n", yylineno, yytext[0]); }
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 103 "c-.l"
+#line 108 "c-.l"
 ECHO;
 	YY_BREAK
-#line 1061 "lex.yy.c"
+#line 1066 "lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2066,7 +2071,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 103 "c-.l"
+#line 108 "c-.l"
 
 
 

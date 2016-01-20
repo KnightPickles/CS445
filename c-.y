@@ -7,26 +7,157 @@
 #include "semantics.h"
 #define YYERROR_VERBOSE
 
+extern int numwarnings;
+extern int numerrors;
 extern int yylineno;
 extern int yylex();
+extern char *yytext;
 extern FILE *yyin;
+extern void initTokenMaps();
 
 static TreeNode *syntaxTree;
+static std::map<std::string , char *> niceTokenNameMap;    // use an ordered map (not as fast as unordered)
 
-void yyerror(const char *msg) {
-    printf("Line %i: %s\n", yylineno, msg);
-    exit(-1);
+int split(char *s, char *strs[], char breakchar)
+{
+    int num;
+    
+    strs[0] = s;
+    num = 1;
+    for (char *p = s; *p; p++) {
+        if (*p==breakchar) {
+            strs[num++] = p+1;
+            *p = '\0';
+        }
+    }
+    strs[num] = NULL;
+    
+    return num;
 }
 
-// Check length of specific chars in the most brutal way possible. 
-void charerror(const char *rtxt) {
-    int len = strlen(rtxt);
-    if(len == 4 && rtxt[1] == '\\') {
-        len -= 1;
+
+// trim off the last character
+void trim(char *s)
+{
+    s[strlen(s)-1] = '\0';
+}
+
+
+// WARNING: this routine must be called to initialize mapping of
+// (strings returned as error message) --> (human readable strings)
+//
+void initTokenMaps() {
+    niceTokenNameMap["NOTEQ"] = (char *)"'!='";
+    niceTokenNameMap["MULASS"] = (char *)"'*='";
+    niceTokenNameMap["INC"] = (char *)"'++'";
+    niceTokenNameMap["ADDASS"] = (char *)"'+='";
+    niceTokenNameMap["DEC"] = (char *)"'--'";
+    niceTokenNameMap["SUBASS"] = (char *)"'-='";
+    niceTokenNameMap["DIVASS"] = (char *)"'/='";
+    niceTokenNameMap["LESSEQ"] = (char *)"'<='";
+    niceTokenNameMap["EQ"] = (char *)"'=='";
+    niceTokenNameMap["GRTEQ"] = (char *)"'>='";
+    niceTokenNameMap["BOOL"] = (char *)"bool";
+    niceTokenNameMap["BREAK"] = (char *)"break";
+    niceTokenNameMap["CHAR"] = (char *)"char";
+    niceTokenNameMap["ELSE"] = (char *)"else";
+    niceTokenNameMap["FOREACH"] = (char *)"foreach";
+    niceTokenNameMap["IF"] = (char *)"if";
+    niceTokenNameMap["IN"] = (char *)"in";
+    niceTokenNameMap["INT"] = (char *)"int";
+    niceTokenNameMap["RETURN"] = (char *)"return";
+    niceTokenNameMap["STATIC"] = (char *)"static";
+    niceTokenNameMap["WHILE"] = (char *)"while";
+    niceTokenNameMap["BOOLCONST"] = (char *)"Boolean constant";
+    niceTokenNameMap["NUMCONST"] = (char *)"numeric constant";
+    niceTokenNameMap["ID"] = (char *)"identifier";
+    niceTokenNameMap["CHARCONST"] = (char *)"character constant";
+    niceTokenNameMap["STRINGCONST"] = (char *)"string constant";
+    niceTokenNameMap["$end"] = (char *)"end of input";
+}
+
+
+// looks of pretty printed words for tokens that are
+// not already in single quotes.  It uses the niceTokenNameMap table.
+char *niceTokenStr(char *tokenName ) {
+    if (tokenName[0] == '\'') return tokenName;
+    if (niceTokenNameMap.find(tokenName) == niceTokenNameMap.end()) {
+        printf("ERROR(SYSTEM): niceTokenStr fails to find string '%s'\n", tokenName); 
+        fflush(stdout);
+        exit(1);
     }
-    if(len - 2 != 1) {
-        printf("ERROR(%u): character is %u characters and not a single character: %s\n", yylineno, (unsigned)strlen(rtxt) - 2, rtxt);
-    } 
+    return niceTokenNameMap[tokenName];
+}
+
+
+// Is this a message that we need to elaborate with the current parsed token.
+// This elaboration is some what of a crap shoot since the token could
+// be already overwritten with a look ahead token.   But probably not.
+bool elaborate(char *s)
+{
+    return (strstr(s, "constant") || strstr(s, "identifier"));
+}
+
+
+// A tiny sort routine for SMALL NUMBERS of
+// of char * elements.  num is the total length
+// of the array but only every step elements will
+// be sorted.  The "up" flag is direction of sort.
+// For example:
+//    tinySort(str, i, 2, direction);      // sorts even number elements in array
+//    tinySort(str+1, i-1, 2, direction);  // sorts odd number elements in array
+//    tinySort(str, i, 1, direction);      // sorts all elements in array
+//
+void tinySort(char *base[], int num, int step, bool up)
+{
+    for (int i=step; i<num; i+=step) {
+        for (int j=0; j<i; j+=step) {
+            if (up ^ (strcmp(base[i], base[j])>0)) {
+                char *tmp;
+                tmp = base[i]; base[i] = base[j]; base[j] = tmp;
+            }
+        }
+    }
+}
+
+
+// This is the yyerror called by the bison parser for errors.
+// It only does errors and not warnings.   
+void yyerror(const char *msg)
+{
+    char *space;
+    char *strs[100];
+    int numstrs;
+
+    // make a copy of msg string
+    space = strdup(msg);
+
+    // split out components
+    numstrs = split(space, strs, ' ');
+    if (numstrs>4) trim(strs[3]);
+
+    // translate components
+    for (int i=3; i<numstrs; i+=2) {
+        strs[i] = niceTokenStr(strs[i]);
+    }
+
+    // print components
+    printf("ERROR(%d): Syntax error, unexpected %s", yylineno, strs[3]);
+    if (elaborate(strs[3])) {
+        if (yytext[0]=='\'' || yytext[0]=='"') printf(" %s", yytext); 
+        else printf(" \'%s\'", yytext);
+    }
+    if (numstrs>4) printf(",");
+    tinySort(strs+5, numstrs-5, 2, true); 
+    for (int i=4; i<numstrs; i++) {
+        printf(" %s", strs[i]);
+    }
+    printf(".\n");
+    fflush(stdout);   // force a dump of the error
+
+    numerrors++;
+
+    free(space);
 }
 
 %}
@@ -66,10 +197,8 @@ void charerror(const char *rtxt) {
                         local_declarations
                         statement_list
                         expression_stmt
-                        matched_selection
-                        unmatched_selection
-                        matched_iteration
-                        unmatched_iteration
+                        matched_conditional
+                        unmatched_conditional
                         return_stmt
                         break_stmt
                         
@@ -96,6 +225,8 @@ void charerror(const char *rtxt) {
                 relop 
                 mulop 
                 sumop
+                binary_assign
+                unary_assign
                         
 %token <token>  ID
                 NUMCONST
@@ -108,9 +239,7 @@ void charerror(const char *rtxt) {
                 '(' ')' '{' '}' '[' ']'
                 ',' ':' ';' '%' '?' '&' '|' '!'
 %%
-program                 : declaration_list { 
-                                syntaxTree = $1;
-                            }    
+program                 : declaration_list { syntaxTree = $1; }    
                         ;
 
 declaration_list        : declaration_list declaration {
@@ -128,11 +257,13 @@ declaration_list        : declaration_list declaration {
 
 declaration             : var_declaration { $$ = $1; }
                         | fun_declaration { $$ = $1; }
+                        | error { $$ = NULL; }
                         ;
 
 // Variable Declaration
 
 var_declaration         : type_specifier var_decl_list ';' {
+                                yyerrok;
                                 TreeNode *complete = $2;
                                 if(complete != NULL) {
                                     do {
@@ -145,9 +276,11 @@ var_declaration         : type_specifier var_decl_list ';' {
                                     $$ = NULL;
                                 }
                             }
+                        | error ';' { yyerrok; $$ = NULL; }
                         ;
 
 scoped_var_declaration  : scoped_type_specifier var_decl_list ';' {
+                                yyerrok;
                                 TreeNode *complete = $2;
                                 if(complete != NULL) {
                                     do {
@@ -160,6 +293,8 @@ scoped_var_declaration  : scoped_type_specifier var_decl_list ';' {
                                     $$ = NULL;
                                 }
                             }
+                        | error { yyerrok; $$ = NULL; }
+                        | scoped_type_specifier error  { $$ = NULL; }
                         ;
 
 var_decl_list           : var_decl_list ',' var_decl_initialize {
@@ -173,27 +308,37 @@ var_decl_list           : var_decl_list ',' var_decl_initialize {
                                 }
                             }
                         | var_decl_initialize { $$ = $1; }
+                        | error ',' var_decl_initialize { yyerrok; $$ = NULL; }
+                        | var_decl_list ',' error { $$ = NULL; }
                         ;
 
+// Missing error on linbad on line 107 unexpected a
 var_decl_initialize     : var_decl_id { $$ = $1; }
                         | var_decl_id ':' simple_expression {
                                 $1->child[0] = $3; // <- NOT NULL, SHOULD BE $3
                                 $$ = $1;  
                             }
+                        | error ':' simple_expression { yyerrok; $$ = NULL; }
+                        | var_decl_id ':' error { $$ = NULL; }
+                        | error { $$ = NULL; }
                         ;
 
-var_decl_id             : ID { 
+var_decl_id             : ID {
+                                yyerrok;
                                 $$ = newDeclNode(VarK);
                                 $$->attr.name = $1.value.sval;
                                 $$->lineno = $1.lineno;
                             }
                         | ID '[' NUMCONST ']' {
+                                yyerrok;
                                 $$ = newDeclNode(VarK);
                                 $$->attr.name = $1.value.sval; 
                                 $$->isArray = true;
                                 $$->arrayLen = $3.value.ival;
                                 $$->lineno = $1.lineno;
                             }
+                        | ID '[' error { $$ = NULL; }
+                        | error ']' { yyerrok; $$ = NULL; }
                         ;
 
 scoped_type_specifier   : STATIC type_specifier {
@@ -219,7 +364,7 @@ fun_declaration         : type_specifier ID '(' params ')' statement {
                                 $$->attr.name = $2.value.sval;
                                 $$->child[0] = $4;
                                 $$->child[1] = $6; 
-                                $$->lineno = $3.lineno; // Allows for correct line no
+                                $$->lineno = $2.lineno; // Allows for correct line no
                             }
 
                         | ID '(' params ')' statement {
@@ -228,8 +373,13 @@ fun_declaration         : type_specifier ID '(' params ')' statement {
                                $$->attr.name = $1.value.sval;
                                $$->child[0] = $3;
                                $$->child[1] = $5; 
-                               $$->lineno = $2.lineno;
+                               $$->lineno = $1.lineno;
                             }
+                        | type_specifier error { $$ = NULL; }
+                        | type_specifier ID '(' error { $$ = NULL; }
+                        | type_specifier ID '(' params ')' error { $$ = NULL; }
+                        | ID '(' params ')' error { $$ = NULL; } 
+                        | ID '(' error { $$ = NULL; }
                         ;
 
 params                  : param_list { $$ = $1; }
@@ -237,6 +387,7 @@ params                  : param_list { $$ = $1; }
                         ;
 
 param_list              : param_list ';' param_type_list {
+                                yyerrok;
                                 TreeNode *trav = $1;
                                 if(trav != NULL) {
                                     while(trav->sibling != NULL) trav = trav->sibling;
@@ -247,6 +398,8 @@ param_list              : param_list ';' param_type_list {
                                 }
                             }
                         | param_type_list { $$ = $1; }
+                        | error ';' param_type_list { yyerrok; $$ = NULL; }
+                        | param_list ';' error { $$ = NULL; } 
                         ;
 
 param_type_list         : type_specifier param_id_list {
@@ -261,30 +414,37 @@ param_type_list         : type_specifier param_id_list {
                                     $$ = NULL;
                                 }
                             }
+                        | type_specifier error { $$ = NULL; }
                         ;
 
 param_id_list           : param_id_list ',' param_id {
-                               TreeNode *trav = $1; 
-                               if(trav != NULL) {
-                                   while(trav->sibling != NULL) trav = trav->sibling;
-                                   trav->sibling = $3;
-                                   $$ = $1;
-                               } else { 
-                                   $$ = $3;
-                               }
+                                yyerrok; 
+                                TreeNode *trav = $1; 
+                                if(trav != NULL) {
+                                    while(trav->sibling != NULL) trav = trav->sibling;
+                                    trav->sibling = $3;
+                                    $$ = $1;
+                                } else { 
+                                    $$ = $3;
+                                }
                             }
                         | param_id { $$ = $1; }
+                        | error ',' param_id { yyerrok; $$ = NULL; }
+                        | param_id_list ',' error { $$ = NULL; }
                         ;
 
-param_id                : ID { 
-                               $$ = newDeclNode(ParamK);
-                               $$->attr.name = $1.value.sval;
+param_id                : ID {
+                                yyerrok;
+                                $$ = newDeclNode(ParamK);
+                                $$->attr.name = $1.value.sval;
                             }
                         | ID '[' ']' {
-                               $$ = newDeclNode(ParamK);
-                               $$->attr.name = $1.value.sval;
-                               $$->isArray = true;
+                                yyerrok;
+                                $$ = newDeclNode(ParamK);
+                                $$->attr.name = $1.value.sval;
+                                $$->isArray = true;
                             }
+                        | error { $$ = NULL; }
                         ;
 
 // Statement
@@ -293,24 +453,90 @@ statement               : unmatched { $$ = $1; }
                         | matched { $$ = $1; }
                         ;
 
-matched                 : matched_selection { $$ = $1; }
-                        | matched_iteration { $$ = $1; }
+matched                 : matched_conditional { $$ = $1; }
                         | expression_stmt { $$ = $1; }
                         | compound_stmt { $$ = $1; }
                         | return_stmt { $$ = $1; }
                         | break_stmt { $$ = $1; }
                         ;
 
-unmatched               : unmatched_selection { $$ = $1; }
-                        | unmatched_iteration { $$ = $1; }
+unmatched               : unmatched_conditional { $$ = $1; }
+                        ;
+
+matched_conditional     : IF '(' simple_expression ')' matched ELSE matched {
+                                $$ = newStmtNode(IfK);
+                                $$->attr.name = $1.rtxt;
+                                $$->child[0] = $3;
+                                $$->child[1] = $5;
+                                $$->child[2] = $7;
+                                $$->lineno = $1.lineno;
+                            }
+                        | WHILE '(' simple_expression ')' matched {
+                                $$ = newStmtNode(WhileK);
+                                $$->attr.name = $1.rtxt;
+                                $$->child[0] = $3;
+                                $$->child[1] = $5;
+                                $$->lineno = $1.lineno;
+                            }
+                        | FOREACH '(' mutable IN simple_expression ')' matched {
+                                $$ = newStmtNode(ForK);
+                                $$->attr.name = $1.rtxt;
+                                $$->child[0] = $3;
+                                $$->child[1] = $5;
+                                $$->child[2] = $7;
+                                $$->lineno = $1.lineno;
+                            }
+                        | IF '(' error ')' matched ELSE matched { $$ = NULL; }
+                        | WHILE '(' error ')' matched { $$ = NULL; }
+                        | FOREACH '(' error ')' matched { $$ = NULL; }
+                        | error { $$ = NULL; }
+                        ;
+
+unmatched_conditional   : IF '(' simple_expression ')' matched ELSE unmatched {
+                                $$ = newStmtNode(IfK);
+                                $$->attr.name = $1.rtxt;
+                                $$->child[0] = $3;
+                                $$->child[1] = $5;
+                                $$->child[2] = $7;
+                                $$->lineno = $1.lineno;
+                            }
+                        | IF '(' simple_expression ')' statement {
+                                $$ = newStmtNode(IfK);
+                                $$->attr.name = $1.rtxt;
+                                $$->child[0] = $3;
+                                $$->child[1] = $5;
+                                $$->lineno = $1.lineno;
+                            }
+                        | WHILE '(' simple_expression ')' unmatched {
+                                $$ = newStmtNode(WhileK);
+                                $$->attr.name = $1.rtxt;
+                                $$->child[0] = $3;
+                                $$->child[1] = $5;
+                                $$->lineno = $1.lineno;
+                            }
+                        | FOREACH '(' mutable IN simple_expression ')' unmatched {
+                                $$ = newStmtNode(ForK);
+                                $$->attr.name = $1.rtxt;
+                                $$->child[0] = $3; 
+                                $$->child[1] = $5;
+                                $$->child[2] = $7;
+                                $$->lineno = $1.lineno;
+                            }
+                        | IF '(' error ')' matched ELSE unmatched { $$ = NULL; }
+                        | IF '(' error ')' statement { $$ = NULL; }
+                        | WHILE '(' error ')' unmatched { $$ = NULL; }
+                        | FOREACH '(' error ')' unmatched { $$ = NULL; }
                         ;
 
 compound_stmt           : '{' local_declarations statement_list '}' {
+                               yyerrok;
                                $$ = newStmtNode(CompK); 
                                $$->child[0] = $2;
                                $$->child[1] = $3; 
                                $$->lineno = $1.lineno;
                             }
+                        | '{' local_declarations error '}' { yyerrok; $$ = NULL; }
+                        | '{' error statement_list '}' { $$ = NULL; }
                         ;
 
 local_declarations      : local_declarations scoped_var_declaration {
@@ -337,79 +563,23 @@ statement_list          : statement_list statement {
                                 }
                             }
                         | { $$ = NULL; }
+                        | statement_list error { $$ = NULL; }
                         ;
 
-expression_stmt         : expression ';' { $$ = $1; }
-                        | ';' { $$ = NULL; }
+expression_stmt         : expression ';' { $$ = $1; yyerrok; }
+                        | ';' { $$ = NULL; yyerrok; }
+                        | error ';' { yyerrok; $$ = NULL; }
                         ;
 
-matched_selection       : IF '(' simple_expression ')' matched ELSE matched {
-                                $$ = newStmtNode(IfK);
-                                $$->attr.name = $1.rtxt;
-                                $$->child[0] = $3;
-                                $$->child[1] = $5;
-                                $$->child[2] = $7;
-                                $$->lineno = $1.lineno;
-                            }
-                        ;
-
-unmatched_selection     : IF '(' simple_expression ')' matched ELSE unmatched {
-                                $$ = newStmtNode(IfK);
-                                $$->attr.name = $1.rtxt;
-                                $$->child[0] = $3;
-                                $$->child[1] = $5;
-                                $$->child[2] = $7;
-                                $$->lineno = $1.lineno;
-                            }
-                        | IF '(' simple_expression ')' statement {
-                                $$ = newStmtNode(IfK);
-                                $$->attr.name = $1.rtxt;
-                                $$->child[0] = $3;
-                                $$->child[1] = $5;
-                                $$->lineno = $1.lineno;
-                            }
-                        ;
-
-matched_iteration       : WHILE '(' simple_expression ')' matched {
-                                $$ = newStmtNode(WhileK);
-                                $$->attr.name = $1.rtxt;
-                                $$->child[0] = $3;
-                                $$->child[1] = $5;
-                                $$->lineno = $1.lineno;
-                            }
-                        | FOREACH '(' mutable IN simple_expression ')' matched {
-                                $$ = newStmtNode(ForK);
-                                $$->attr.name = $1.rtxt;
-                                $$->child[0] = $3;
-                                $$->child[1] = $5;
-                                $$->child[2] = $7;
-                                $$->lineno = $1.lineno;
-                            }
-                        ;
-
-unmatched_iteration     : WHILE '(' simple_expression ')' unmatched {
-                                $$ = newStmtNode(WhileK);
-                                $$->attr.name = $1.rtxt;
-                                $$->child[0] = $3;
-                                $$->child[1] = $5;
-                                $$->lineno = $1.lineno;
-                            }
-                        | FOREACH '(' mutable IN simple_expression ')' unmatched {
-                                $$ = newStmtNode(ForK);
-                                $$->attr.name = $1.rtxt;
-                                $$->child[0] = $3; 
-                                $$->child[1] = $5;
-                                $$->child[2] = $7;
-                                $$->lineno = $1.lineno;
-                            }
-                        ;
 
 return_stmt             : RETURN ';' { 
+                                yyerrok;
                                 $$ = newStmtNode(ReturnK);
                                 $$->attr.name = $1.rtxt;
                                 $$->lineno = $1.lineno;
                             }
                         | RETURN expression ';' {
+                                yyerrok;
                                 $$ = newStmtNode(ReturnK);
                                 $$->attr.name = $1.rtxt;
                                 $$->child[0] = $2;
@@ -418,6 +588,7 @@ return_stmt             : RETURN ';' {
                         ;
 
 break_stmt              : BREAK ';' { 
+                                yyerrok;
                                 $$ = newStmtNode(BreakK);
                                 $$->attr.name = $1.rtxt;
                             }
@@ -425,54 +596,37 @@ break_stmt              : BREAK ';' {
 
 // Expression
 
-expression              : mutable '=' expression {
+// Questioning the validity of error binary yyerrok and 
+expression              : mutable binary_assign expression {
                                 $$ = newExprNode(AssignK);
                                 $$->attr.name = $2.rtxt;
                                 $$->child[0] = $1;
                                 $$->child[1] = $3;
                                 $$->lineno = $2.lineno;
                             }
-                        | mutable ADDASS expression {
-                                $$ = newExprNode(AssignK);
-                                $$->attr.name = $2.rtxt;
-                                $$->child[0] = $1;
-                                $$->child[1] = $3;
-                                $$->lineno = $2.lineno;
-                            }
-                        | mutable SUBASS expression {
-                                $$ = newExprNode(AssignK);
-                                $$->attr.name = $2.rtxt;
-                                $$->child[0] = $1;
-                                $$->child[1] = $3;
-                                $$->lineno = $2.lineno;
-                            }
-                        | mutable MULASS expression {
-                                $$ = newExprNode(AssignK);
-                                $$->attr.name = $2.rtxt;
-                                $$->child[0] = $1;
-                                $$->child[1] = $3;
-                                $$->lineno = $2.lineno;
-                            }
-                        | mutable DIVASS expression { 
-                                $$ = newExprNode(AssignK);
-                                $$->attr.name = $2.rtxt;
-                                $$->child[0] = $1;
-                                $$->child[1] = $3;
-                                $$->lineno = $2.lineno;
-                            }
-                        | mutable INC {
+                        | mutable unary_assign {
+                                yyerrok;
                                 $$ = newExprNode(AssignK);
                                 $$->attr.name = $2.rtxt;
                                 $$->child[0] = $1;
                                 $$->lineno = $2.lineno;
                             }
-                        | mutable DEC {
-                                $$ = newExprNode(AssignK);
-                                $$->attr.name = $2.rtxt;
-                                $$->child[0] = $1;
-                                $$->lineno = $2.lineno;
-                            }
-                        | simple_expression { $$ = $1; } 
+                        | simple_expression { $$ = $1; }
+                        | error unary_assign { yyerrok; $$ = NULL; }
+                        | error binary_assign expression { yyerrok; $$ = NULL; }
+                        | mutable binary_assign error { $$ = NULL; }
+                        | error binary_assign error { $$ = NULL; }
+                        ;
+
+binary_assign           : '=' { $$ = $1; }
+                        | ADDASS { $$ = $1; }
+                        | SUBASS { $$ = $1; }
+                        | MULASS { $$ = $1; }
+                        | DIVASS { $$ = $1; }
+                        ;
+
+unary_assign            : INC { $$ = $1; }
+                        | DEC { $$ = $1; }
                         ;
 
 simple_expression       : simple_expression '|' and_expression {
@@ -482,6 +636,9 @@ simple_expression       : simple_expression '|' and_expression {
                                 $$->child[1] = $3;
                             }
                         | and_expression { $$ = $1; }
+                        | error '|' and_expression { yyerrok; $$ = NULL; }
+                        | simple_expression '|' error { $$ = NULL; }
+                        | error '|' error { $$ = NULL; }
                         ;
 
 and_expression          : and_expression '&' unary_rel_expression {
@@ -491,6 +648,9 @@ and_expression          : and_expression '&' unary_rel_expression {
                                 $$->child[1] = $3; 
                             }
                         | unary_rel_expression { $$ = $1; }
+                        | error '&' unary_rel_expression { yyerrok; $$ = NULL; }
+                        | and_expression '&' error { $$ = NULL; }
+                        | error '&' error { $$ = NULL; } 
                         ;
 
 unary_rel_expression    : '!' unary_rel_expression {
@@ -499,6 +659,7 @@ unary_rel_expression    : '!' unary_rel_expression {
                                 $$->child[0] = $2;
                             }
                         | rel_expression { $$ = $1; }
+                        | '!' error { $$ = NULL; }
                         ;
 
 rel_expression          : sum_expression relop sum_expression {
@@ -508,6 +669,9 @@ rel_expression          : sum_expression relop sum_expression {
                                $$->child[1] = $3;
                             }
                         | sum_expression { $$ = $1; }
+                        | error relop sum_expression { yyerrok; $$ = NULL; }
+                        | sum_expression relop error { $$ = NULL; }
+                        | error relop error { $$ = NULL; }
                         ;
 
 relop                   : LESSEQ { $$ = $1; }
@@ -525,6 +689,9 @@ sum_expression          : sum_expression sumop term {
                                 $$->child[1] = $3;
                             }
                         | term { $$ = $1; }
+                        | error sumop term { yyerrok; $$ = NULL; }
+                        | sum_expression sumop error { $$ = NULL; }
+                        | error sumop error { $$ = NULL; } 
                         ;
 
 sumop                   : '+' { $$ = $1; }
@@ -539,6 +706,9 @@ term                    : term mulop unary_expression {
                                 $$->lineno = $2.lineno;
                             }
                         | unary_expression { $$ = $1; }
+                        | error mulop unary_expression { yyerrok; $$ = NULL; }
+                        | term mulop error { $$ = NULL; }
+                        | error mulop error { $$ = NULL; } 
                         ;
 
 mulop                   : '*' { $$ = $1; } 
@@ -552,6 +722,7 @@ unary_expression        : unaryop unary_expression {
                                 $$->child[0] = $2;
                             }
                         | factor { $$ = $1; }
+                        | unaryop error { $$ = NULL; }
                         ;
 
 unaryop                 : '-' { $$ = $1; }
@@ -564,26 +735,33 @@ factor                  : immutable { $$ = $1; }
                         ;
 
 mutable                 : ID {
-                               $$ = newExprNode(IdK); 
-                               $$->attr.name = $1.value.sval;
+                                yyerrok;
+                                $$ = newExprNode(IdK); 
+                                $$->attr.name = $1.value.sval;
                             } 
                         | ID '[' expression ']' {
-                               $$ = newExprNode(IdK);
-                               $$->attr.name = $1.value.sval;
-                               $$->child[0] = $3;
+                                yyerrok; 
+                                $$ = newExprNode(IdK);
+                                $$->attr.name = $1.value.sval;
+                                $$->child[0] = $3;
                             }
+                        | ID '[' error { $$ = NULL; }
+                        | error ']' { yyerrok; $$ = NULL; } 
                         ;
         
-immutable               : '(' expression ')' { $$ = $2; }
+immutable               : '(' expression ')' { yyerrok; $$ = $2; }
                         | call { $$ = $1; }
                         | constant { $$ = $1; }
+                        | '(' error { $$ = NULL; } 
                         ;
 
 call                    : ID '(' args ')' {
-                               $$ = newExprNode(CallK);
-                               $$->attr.name = $1.value.sval;
-                               $$->child[0] = $3;
+                                yyerrok; 
+                                $$ = newExprNode(CallK);
+                                $$->attr.name = $1.value.sval;
+                                $$->child[0] = $3;
                             }
+                        | ID '(' error { $$ = NULL; }
                         ;
 
 args                    : arg_list { $$ = $1; }
@@ -591,6 +769,7 @@ args                    : arg_list { $$ = $1; }
                         ;
 
 arg_list                : arg_list ',' expression {
+                                yyerrok;
                                 TreeNode *trav = $1; 
                                 if(trav != NULL) {
                                     while(trav->sibling != NULL) trav = trav->sibling;
@@ -601,25 +780,31 @@ arg_list                : arg_list ',' expression {
                                 }
                             }
                         | expression { $$ = $1; }
+                        | error ',' expression { yyerrok; $$ = NULL; }
+                        | arg_list ',' error { $$ = NULL; } 
                         ;
 
 constant                : NUMCONST {
+                                yyerrok;
                                 $$ = newExprNode(ConstK); 
                                 $$->attr.ivalue = $1.value.ival; 
                                 $$->declType = Int;
                             }
                         | CHARCONST { 
+                                yyerrok;
                                 $$ = newExprNode(ConstK); 
                                 $$->attr.cvalue = $1.value.cval;
                                 $$->declType = Char;
                             }
                         | STRINGCONST { 
+                                yyerrok;
                                 $$ = newExprNode(ConstK); 
                                 $$->attr.svalue = $1.value.sval; 
                                 $$->declType = Char; 
                                 $$->isArray = true;
                             }
                         | BOOLCONST { 
+                                yyerrok;
                                 $$ = newExprNode(ConstK); 
                                 $$->attr.ivalue = $1.value.ival; 
                                 $$->declType = Bool;
@@ -628,6 +813,8 @@ constant                : NUMCONST {
 
 %%
 int main(int argc, char** argv) {
+    initTokenMaps(); // Used for verbose error checking
+    
     // Get cmd line option arguments if they exist
     int opt;
     bool print = false;
@@ -662,20 +849,18 @@ int main(int argc, char** argv) {
     // Start the scanner now that our options and yyin have been changed (or not). 
     do {
         yyparse();
-    } while(!feof(yyin));
-   
-    int numerrors = 0;
-    int numwarnings = 0;
-    
+    } while(!feof(yyin)); 
 
-    if(print) {
+    if(print && numerrors == 0) {
         printTree(syntaxTree, -1, false);
     }
 
-    IOLibrary(syntaxTree);
-    semantics(syntaxTree, numerrors, numwarnings);
+    if(numerrors == 0 && numwarnings == 0) {
+        IOLibrary(syntaxTree);
+        semantics(syntaxTree, numerrors, numwarnings);
+    }
 
-    if(printAn) {
+    if(numerrors == 0 && numwarnings == 0 && printAn) {
         printTree(syntaxTree, -1, true); // print annotated syntax tree
     }
 

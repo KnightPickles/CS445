@@ -9,7 +9,7 @@ int max(int x)
     if x>y) z=x 666;
     else z=y;
 
-    foreach (x "dogs") c = x * 4 + 'z';
+    f|each (x "dogs") c = x * 4 + 'z';
     
     while (666>) {
        break;

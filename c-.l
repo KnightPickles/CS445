@@ -6,6 +6,9 @@
 #include "util.h"
 #include "c-.tab.h"
 
+int numerrors = 0;
+int numwarnings = 0;
+
 // Perform default token assignemnts
 void initialize() {
     yylval.token.lineno = yylineno;
@@ -52,16 +55,18 @@ char* escstr(char* str) {
     return resize;
 }
 
+// Returns true if there was a char length error
 bool charerror(char* str) {
     int len = strlen(str);
     if(len == 4 && str[1] == '\\') {
         len -= 1;
     }
     if(len - 2 != 1) {
-        printf("ERROR(%u): character is %u characters and not a single character: %s\n", yylineno, (unsigned)strlen(str) - 2, str);
-        return false;
+        numwarnings++;
+        printf("WARNING(%u): character is %u characters and not a single character: %s\n", yylineno, (unsigned)strlen(str) - 2, str);
+        return true;
     }
-    return true;
+    return false;
 }
 
 %}
@@ -71,7 +76,7 @@ bool charerror(char* str) {
 [ \t\n]                         ;
 (\/\/(.)*\n)                    ;
 [0-9]+                          { initialize(atoi(yytext)); return NUMCONST; }
-'((\\\')|[^\'\n])*\'            { initialize(escstr(yytext)[0]); if(charerror(strdup(yytext))) return CHARCONST; }
+'((\\\')|[^\'\n])*\'            { initialize(escstr(yytext)[0]); charerror(strdup(yytext)); return CHARCONST; }
 \"((\\\")|[^\"\n])*\"           { initialize(escstr(yytext)); return STRINGCONST; }
 "true"                          { initialize(1); return BOOLCONST; }
 "false"                         { initialize(0); return BOOLCONST; }
@@ -99,5 +104,5 @@ bool charerror(char* str) {
 [\=\>\<\+\-\*\/\%\&\|\!\?]      { initialize(yytext[0]); return yytext[0]; }
 [\(\)\{\}\[\]\;\:\,]            { initialize(yytext[0]); return yytext[0]; }
 [a-zA-Z]+[0-9a-zA-Z]*           { initialize(strdup(yytext)); return ID; }
-.                               { printf("ERROR(%u): Invalid input character: \"%c\"\n", yylineno, yytext[0]); }
+.                               { numwarnings++; printf("WARNING(%u): Invalid input character: \'%c\'. Character ignored.\n", yylineno, yytext[0]); }
 %%
