@@ -1,7 +1,7 @@
 BIN  = c-
 CC   = g++
-SRCS = $(BIN).y $(BIN).l
-OBJS = lex.yy.o $(BIN).tab.o
+SRCS = $(BIN).y $(BIN).l tokenClass.h globals.h util.h util.c
+OBJS = lex.yy.o $(BIN).tab.o util.o
 LIBS = -lm 
 
 $(BIN): $(OBJS)
@@ -12,6 +12,10 @@ $(BIN).tab.h $(BIN).tab.c: $(BIN).y
 
 lex.yy.c: $(BIN).l $(BIN).tab.h
 	flex $(BIN).l  # -d debug
+
+util.o: util.c util.h globals.h
+	$(CC) $(CFLAGS) -c util.c
+
 
 all:    
 	touch $(SRCS)
@@ -31,5 +35,5 @@ pdf:
 	rm *.tex
 
 tar:
-	tar -cvf $(BIN).tar $(SRCS) makefile tokenClass.h
+	tar -cvf $(BIN).tar $(SRCS) makefile 
 

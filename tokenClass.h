@@ -1,4 +1,6 @@
-struct Token {
+#ifndef TOKEN_H
+#define TOKEN_H
+typedef struct token {
     union Value {
         int ival;
         char cval;
@@ -7,4 +9,6 @@ struct Token {
 
     char* rtxt;
     int slen;
-};
+    int lineno;
+} Token;
+#endif

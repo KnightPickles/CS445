@@ -57,16 +57,37 @@
      RETURN = 273,
      STATIC = 274,
      WHILE = 275,
-     NOTEQ = 276,
-     EQ = 277,
-     LESSEQ = 278,
-     GRTEQ = 279,
-     INC = 280,
-     DEC = 281,
-     ADDASS = 282,
-     SUBASS = 283,
-     MULASS = 284,
-     DIVASS = 285
+     ASSIGN = 276,
+     NOTEQ = 277,
+     EQ = 278,
+     LESSEQ = 279,
+     LESS = 280,
+     GRTEQ = 281,
+     GRT = 282,
+     INC = 283,
+     DEC = 284,
+     ADDASS = 285,
+     ADD = 286,
+     SUBASS = 287,
+     SUB = 288,
+     MULASS = 289,
+     MUL = 290,
+     DIVASS = 291,
+     DIV = 292,
+     OPAREN = 293,
+     CPAREN = 294,
+     OBRACE = 295,
+     CBRACE = 296,
+     OBRAK = 297,
+     CBRAK = 298,
+     COMMA = 299,
+     COLON = 300,
+     SEMI = 301,
+     MOD = 302,
+     QUE = 303,
+     AND = 304,
+     OR = 305,
+     NOT = 306
    };
 #endif
 /* Tokens.  */
@@ -88,28 +109,52 @@
 #define RETURN 273
 #define STATIC 274
 #define WHILE 275
-#define NOTEQ 276
-#define EQ 277
-#define LESSEQ 278
-#define GRTEQ 279
-#define INC 280
-#define DEC 281
-#define ADDASS 282
-#define SUBASS 283
-#define MULASS 284
-#define DIVASS 285
+#define ASSIGN 276
+#define NOTEQ 277
+#define EQ 278
+#define LESSEQ 279
+#define LESS 280
+#define GRTEQ 281
+#define GRT 282
+#define INC 283
+#define DEC 284
+#define ADDASS 285
+#define ADD 286
+#define SUBASS 287
+#define SUB 288
+#define MULASS 289
+#define MUL 290
+#define DIVASS 291
+#define DIV 292
+#define OPAREN 293
+#define CPAREN 294
+#define OBRACE 295
+#define CBRACE 296
+#define OBRAK 297
+#define CBRAK 298
+#define COMMA 299
+#define COLON 300
+#define SEMI 301
+#define MOD 302
+#define QUE 303
+#define AND 304
+#define OR 305
+#define NOT 306
 
 
 
 
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 typedef union YYSTYPE
-#line 30 "c-.y"
+#line 38 "c-.y"
 {
-    struct Token token; 
+    Token token; 
+    TreeNode *treeNode;
+    DeclType integer;
+    char *string;
 }
 /* Line 1529 of yacc.c.  */
-#line 113 "c-.tab.h"
+#line 158 "c-.tab.h"
 	YYSTYPE;
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1
